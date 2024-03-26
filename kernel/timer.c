@@ -1,11 +1,14 @@
 #include "types.h"
-#include "times.h"
+#include "timer.h"
 #include "sbi.h"
 #include "riscv.h"
 #include "spinlock.h"
+#include "defs.h"
+
+int ticks;
 
 struct {
-  struct spinlock *lock;
+  struct spinlock lock;
   int ticks;
 } timer;
 

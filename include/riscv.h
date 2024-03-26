@@ -34,6 +34,15 @@ inithartid(uint64 hartid)
   asm volatile("mv tp, %0": :"r"(hartid & 0x1));
 }
 
+
+// Supervisor Status Register, sstatus
+
+#define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
+#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
+#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
+#define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
+#define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
+
 static inline uint64
 r_sstatus()
 {
@@ -110,7 +119,7 @@ sfence_vma()
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
 
-typedef uint64 *pagetable_t;
-typedef uint64 pte_t;
+typedef uint64 * pagetable_t;
+typedef uint64   pte_t;
 
 #endif //__RISCV_H__

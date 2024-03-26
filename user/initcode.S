@@ -8,7 +8,7 @@
 start:
         la a0, init
         la a1, argv
-        li a7, SYS_exec
+        li a7, SYS_execve
         ecall
 
 # for(;;) exit();

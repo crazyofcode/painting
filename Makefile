@@ -15,6 +15,14 @@ OBJS = \
 			 $T/printf.o\
 			 $T/spinlock.o\
 			 $T/string.o\
+			 $T/kalloc.o\
+			 $T/bio.o\
+			 $T/buddy.o\
+			 $T/timer.o\
+			 $T/vm.o\
+			 $T/sleeplock.o\
+			 $T/trampoline.o\
+
 
 $T/%.o: $K/%.S
 	$(shell mkdir -p $(T))
@@ -37,6 +45,9 @@ $U/initcode: $U/initcode.S
 qemu: $T/kernel
 	$(QEMU)	$(QEMUOPTS)
 
+qemu-gdb: $T/kernel .gdbinit fs.img
+	@echo "*** Now run 'gdb' in another window." 1>&2
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 clean:
 	rm -rf ./build
 PYTHON: clean

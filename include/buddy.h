@@ -19,7 +19,7 @@ struct buddy {
 
 void        buddyinit();
 void *      malloc(size_t);
-void        free(struct buddy *);
+void        free(void *);
 void        mem_info();
 
 #endif // !__BUDDY_H__

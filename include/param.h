@@ -2,5 +2,8 @@
 #define LOCKED 1
 
 #define NCPU    2
-#define NOFILE  16
-#define intervel 1000000    // 时钟周期
+#define NBUF    20
+#define NDEV    10
+#define BSIZE   4096
+#define NOFILE  120
+#define MAXOPBLOCKS 10

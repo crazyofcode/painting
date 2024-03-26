@@ -1,11 +1,14 @@
+#include "types.h"
+#include "riscv.h"
+#include "defs.h"
 #include "param.h"
 #include "spinlock.h"
-#include "defs.h"
+#include "proc.h"
 
 void
 initlock(struct spinlock *lk, char *name)
 {
-  lk->locked = unlock;
+  lk->locked = UNLOCK;
   lk->name = name;
   lk->cpu = 0;
 }
@@ -54,7 +57,7 @@ holding(struct spinlock *lk)
 {
   int r;
 
-  r = (lk->locked == locked && lk->cpu == mycpu());
+  r = (lk->locked == LOCKED && lk->cpu == mycpu());
 
   return r;
 }
@@ -68,7 +71,7 @@ push_off()
   if(mycpu()->noff == 0)
     mycpu()->intena = old;
 
-  mycpu()->noff += ;
+  mycpu()->noff += 1;
 }
 
 

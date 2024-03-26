@@ -15,9 +15,12 @@ int         cpuid();
 struct cpu* mycpu();
 struct proc*myproc();
 int         killed(struct proc *);
+void        sleep(void *, struct spinlock *);
+int         either_copy(int, uint64, void *, uint);
+void        cpuinit(uint64);
 
 // string.c
-void *      memset(char *addr, int c, uint size);
+void *      memset(void *addr, int c, uint size);
 
 // printf.c
 void        printfinit();
@@ -31,6 +34,7 @@ void        consoleputc(int);
 // kalloc.c
 void        kinit();
 void        kfree(void *);
+void        freerange(void *, void *);
 void *      kalloc();
 
 // vm.c
@@ -53,3 +57,9 @@ void      acquire(struct spinlock *);
 void      release(struct spinlock *);
 void      push_off();
 void      pop_off();
+int       holding(struct spinlock *);
+
+// sleeplock.c
+void      initsleeplock(struct sleeplock *, char *name);
+void      acquiresleeplock(struct sleeplock *);
+int       holdingsleep(struct sleeplock *);

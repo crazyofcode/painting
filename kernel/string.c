@@ -1,7 +1,7 @@
 #include "types.h"
 
 void *
-memset(char *addr, int c, uint size)
+memset(void *addr, int c, uint size)
 {
   if(!addr)
     return 0;

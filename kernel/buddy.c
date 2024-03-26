@@ -1,8 +1,9 @@
 #include "types.h"
 #include "buddy.h"
+#include "riscv.h"
 #include "defs.h"
 
-struct buddy *freelist[MAX_LEN+1];
+struct buddy *freelist[MAX_LEVEL+1];
 
 // 计算待分配内存对应的块的等级
 static inline int
@@ -23,9 +24,9 @@ void
 buddyinit()
 {
   int i;
-  for(i = 0; i < MAX_LEN; i++)
+  for(i = 0; i < MAX_LEVEL; i++)
   {
-    freelist[i] = NULL;
+    freelist[i] = 0;
   }
 }
 
@@ -49,25 +50,25 @@ malloc(size_t sz)
 
   int i = lv;
 
-  struct buddy *block = NULL;
+  struct buddy *block = 0;
 
   for(;;i++)
   {
-    if(freelist[i] != NULL)
+    if(freelist[i] != 0)
     {
       block = freelist[i];
       freelist[i] = freelist[i]->next;
       break;
     }
 
-    if(i > MAX_LEN)
+    if(i > MAX_LEVEL)
       break;
   }
 
-  if(block == NULL)
+  if(block == 0)
   {
     block = (struct buddy *)kalloc();
-    if(block == NULL)
+    if(block == 0)
       panic("buddy alloc");
   }
 
@@ -98,7 +99,7 @@ free(void *pa)
 
   for(;;++i)
   {
-    if(i == MAX_LEN)
+    if(i == MAX_LEVEL)
     {
       kfree(pa);
       break;
@@ -109,7 +110,7 @@ free(void *pa)
     // 判断是否存在和要释放的内存块统一级的freelist
     list = &freelist[i];
 
-    while((list != NULL) && (*list != buddy))
+    while((list != 0) && (*list != buddy))
       list = &(*list)->next;
 
     if(*list != buddy)
@@ -120,7 +121,7 @@ free(void *pa)
     }
       else {
       block = block < buddy ? buddy : block;
-      *list = &(*list)->next;
+      *list = (*list)->next;
     }
   }
 }
@@ -130,7 +131,7 @@ void
 mem_info()
 {
   printf("===================================================\n");
-  for(int i = MIN_LEVEL; i  < MAX_LEN; i++)
+  for(int i = MIN_LEVEL; i  < MAX_LEVEL; i++)
   {
     struct buddy *block = freelist[i];
     size_t        sz    = LEVEL_2_SIZE(i);
