@@ -80,3 +80,9 @@ consoleread(uint64 dst, int user, int n)
   release(&cons.lock);
   return expect - n;
 }
+
+void
+consoleintr(int c)
+{
+  panic("consoleintr todo");
+}

@@ -40,14 +40,12 @@ main(uint64 hartid, uint64 dtb_pa)
     kvminithart();  // 启用分页
     timerinit();
     binit();        // 缓冲区初始化
-    /*
     trapinithart();
     plicinit();
     plicinithart();
     devinit();
     inittasktable();
     initfirsttask();
-    */
     int i;
     for(i = 0; i < NCPU; i++)
     {
@@ -64,13 +62,11 @@ main(uint64 hartid, uint64 dtb_pa)
     while(started == 0)
       ;
 
-      /*
     __sync_synchronize();
     inithartvm();
     trapinithart();
     plicinithart();
-    */
   }
 
-  // scheduler();
+  scheduler();
 }

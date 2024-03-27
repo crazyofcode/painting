@@ -1,5 +1,7 @@
 #include "types.h"
 #include "memlayout.h"
+#include "riscv.h"
+#include "defs.h"
 
 void
 plicinit(void)
@@ -20,4 +22,23 @@ plicinithart(void)
 
   // set this hart's S-mode priority threshold to 0.
   *(uint32*)PLIC_SPRIORITY(hart) = 0;
+}
+
+int
+irq_claim(void)
+{
+  int hartid = cpuid();
+  int irq;
+
+  irq = *(uint32 *)PLIC_MCLAIM(hartid);
+
+  return irq;
+}
+
+void
+plic_complete(int irq)
+{
+  int hartid = cpuid();
+
+  *(uint32 *)PLIC_MCLAIM(hartid) = irq;
 }

@@ -57,6 +57,39 @@ w_sstatus(uint64 x)
   asm volatile("csrw sstatus, %0" : : "r"(x));
 }
 
+// Supervisor Interrupt Pending
+static inline uint64
+r_sip()
+{
+  uint64 x;
+  asm volatile("csrr %0, sip" : "=r" (x) );
+  return x;
+}
+
+static inline void 
+w_sip(uint64 x)
+{
+  asm volatile("csrw sip, %0" : : "r" (x));
+}
+
+// Supervisor Interrupt Enable
+#define SIE_SEIE (1L << 9) // external
+#define SIE_STIE (1L << 5) // timer
+#define SIE_SSIE (1L << 1) // software
+static inline uint64
+r_sie()
+{
+  uint64 x;
+  asm volatile("csrr %0, sie" : "=r" (x) );
+  return x;
+}
+
+static inline void 
+w_sie(uint64 x)
+{
+  asm volatile("csrw sie, %0" : : "r" (x));
+}
+
 static inline uint64
 r_time()
 {
@@ -92,6 +125,57 @@ r_tp()
   return x;
 }
 
+// supervisor exception program counter, holds the
+// instruction address to which a return from
+// exception will go.
+static inline void 
+w_sepc(uint64 x)
+{
+  asm volatile("csrw sepc, %0" : : "r" (x));
+}
+
+static inline uint64
+r_sepc()
+{
+  uint64 x;
+  asm volatile("csrr %0, sepc" : "=r" (x) );
+  return x;
+}
+
+// Supervisor Trap Cause
+static inline uint64
+r_scause()
+{
+  uint64 x;
+  asm volatile("csrr %0, scause" : "=r" (x) );
+  return x;
+}
+
+// Supervisor Trap Value
+static inline uint64
+r_stval()
+{
+  uint64 x;
+  asm volatile("csrr %0, stval" : "=r" (x) );
+  return x;
+}
+
+// Supervisor Trap-Vector Base Address
+// low two bits are mode.
+static inline void 
+w_stvec(uint64 x)
+{
+  asm volatile("csrw stvec, %0" : : "r" (x));
+}
+
+static inline uint64
+r_stvec()
+{
+  uint64 x;
+  asm volatile("csrr %0, stvec" : "=r" (x) );
+  return x;
+}
+
 // use riscv's sv39 page table scheme.
 #define SATP_SV39 (8L << 60)
 
@@ -103,6 +187,14 @@ static inline void
 w_satp(uint64 x)
 {
   asm volatile("csrw satp, %0" : : "r" (x));
+}
+
+static inline uint64
+r_satp()
+{
+  uint64 x;
+  asm volatile("csrr %0, satp" : "=r" (x) );
+  return x;
 }
 
 // flush the TLB.

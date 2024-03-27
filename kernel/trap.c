@@ -1,11 +1,16 @@
 #include "types.h"
+#include "param.h"
 #include "memlayout.h"
 #include "riscv.h"
+#include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
 #include "sbi.h"
 
-extern char kernelvec[];
+extern char uservec[], userret[], trampoline[];
+
+// define in kernelvec.S
+void kernelvec();
 
 void
 trapinithart(void)
@@ -15,7 +20,7 @@ trapinithart(void)
 
   // 启用S mode的时钟中断
   w_sie(r_sie() | SIE_SEIE | SIE_SSIE | SIE_STIE);
-  setTiomout();
+  setTimeout();
 }
 
 // 处理用户程序的系统调用, 中断或者异常
@@ -84,8 +89,8 @@ usertrapret()
   uint64 trampoline_uservec = TRAMPOLINE + (uint64)uservec - (uint64)trampoline;
   w_stvec(trampoline_uservec);
 
-  p->trapframe->satp = r_satp();
-  p->trapframe->kernel_sp = p->kstack + PGSIZE;
+  p->trapframe->kernel_satp = r_satp();
+  p->trapframe->sp = p->kstack + PGSIZE;
   p->trapframe->kernel_trap = (uint64)usertrap;
   p->trapframe->kernel_hartid = r_tp();
 
@@ -127,13 +132,39 @@ devintr()
     (scause & 0xff) == 9)
   {
     int irq = irq_claim();
-    if(UART_TRQ == irq)
+    if(UART_IRQ == irq)
     {
       int c = sbi_console_getchar();
       if(c != -1)
       {
-
+        consoleintr(c);
       }
+    } else if (DMA0_IRQ == irq) {
+      // k210
+    } else if (VIRTIO_IRQ == irq) {
+      virtiointr();
+    } else if (irq) {
+      printf("unexpected interrupt irq(%d)", irq);
     }
+
+    if (irq) {
+      plic_complete(irq);
+    }
+
+    w_sip(r_sip() & ~2);
+    sbi_set_mie();
+
+    return 1;
+  } else if (0x8000000000000005L == scause) {
+    clockintr();
+    return 2;
+  } else {
+    return 0;
   }
+}
+
+void
+kerneltrap(void)
+{
+  panic("kerneltrap todo");
 }

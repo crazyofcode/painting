@@ -26,3 +26,9 @@ setTimeout()
   int t = r_time() + intervel;
   sbi_set_timer(t);
 }
+
+void
+clockintr()
+{
+  panic("clockintr todo");
+}

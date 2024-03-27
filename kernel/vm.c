@@ -86,6 +86,13 @@ kvminithart()
   sfence_vma();
 }
 
+void
+inithartvm()
+{
+  w_satp(MAKE_SATP(kernel_pagetable));
+  sfence_vma();
+}
+
 // Return the address of the PTE in page table pagetable
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page-table pages.

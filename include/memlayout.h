@@ -1,13 +1,15 @@
 // #ifdef QEMU
 // qemu puts UART register here in physical memory
 #define UART  0x10000000L
-#define UART_TRQ 10
+#define UART_IRQ 10
 // endif
 
 // #ifdef QEMU
 #define VIRTIO0 0x10001000L
 #define VIRTIO_IRQ 1
 // #endif // QEMU
+
+#define DMA0_IRQ 27
 
 #define PLIC    0x0c000000L
 #define PLIC_PRIORITY (PLIC + 0x0)

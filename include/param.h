@@ -7,3 +7,5 @@
 #define BSIZE   4096
 #define NOFILE  120
 #define MAXOPBLOCKS 10
+#define MAXPATH 64
+#define NOMMAPFILE 60

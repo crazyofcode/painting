@@ -22,6 +22,11 @@ OBJS = \
 			 $T/vm.o\
 			 $T/sleeplock.o\
 			 $T/trampoline.o\
+			 $T/trap.o\
+			 $T/plic.o\
+			 $T/syscall.o\
+			 $T/virtio.o\
+			 $T/kernelvec.o\
 
 
 $T/%.o: $K/%.S

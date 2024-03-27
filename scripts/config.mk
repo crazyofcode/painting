@@ -6,7 +6,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
 
-LIB_PATH := $(HOME)/Desktop/os6828/paintingOS/include
+LIB_PATH := ./include
 SBI-QEMU := ./opensbi/sbi-qemu
 
 QEMUOPTS = -machine virt -cpu rv64 -kernel $T/kernel -m 1G -smp $(CPUS) -nographic
