@@ -124,3 +124,9 @@ panic(char *s)
   while(1)
     ;
 }
+
+void
+TODO()
+{
+  panic("待完成");
+}

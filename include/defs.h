@@ -26,14 +26,18 @@ void        exit(int);
 void        setkilled(struct proc *p);
 void        yield(void);
 void        scheduler();
+pagetable_t proc_pagetable(struct proc *);
+void        forkret(void);
 
 // string.c
 void *      memset(void *addr, int c, uint size);
+void *      memmove(void *, void *, int);
 
 // printf.c
 void        printfinit();
 void        panic(char *);
 void        printf(char *, ...);
+void        TODO();
 
 // console.c
 void        consoleinit();
@@ -53,6 +57,17 @@ int         mappages(pagetable_t, uint64, uint64, uint64, int);
 pte_t *     walk(pagetable_t, uint64, int);
 void        kvminithart();
 void        inithartvm();
+int         uvmcopy(pagetable_t, pagetable_t, uint64);
+int         copyout(pagetable_t, uint64, char *, uint64);
+int         copyinstr(pagetable_t, char *, uint64, uint64);
+int         copyin(pagetable_t, char *, uint64, uint64);
+pagetable_t uvmcreate();
+void        uvmfirst(pagetable_t, uchar*, uint);
+void        freewalk(pagetable_t);
+void        uvmfree(pagetable_t, uint64);
+void        uvmunmap(pagetable_t, uint64, uint64, int);
+uint64      uvmdealloc(pagetable_t, uint64, uint64);
+uint64      walkaddr(pagetable_t, uint64);
 
 // timer.c
 void        timerinit();

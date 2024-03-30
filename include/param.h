@@ -1,6 +1,7 @@
 #define UNLOCK 0
 #define LOCKED 1
 
+#define NPROC   64
 #define NCPU    2
 #define NBUF    20
 #define NDEV    10
