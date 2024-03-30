@@ -28,6 +28,7 @@ void        yield(void);
 void        scheduler();
 pagetable_t proc_pagetable(struct proc *);
 void        forkret(void);
+void        wakeup(void *);
 
 // string.c
 void *      memset(void *addr, int c, uint size);

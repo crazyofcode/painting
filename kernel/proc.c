@@ -17,6 +17,7 @@ struct proc *initproc;
 struct spinlock wait_lock;
 
 extern char trampoline[];
+extern void swtch(struct context *, struct context *);
 
 #define KSTACK_SIZE (PGSIZE * 2)
 _Alignas(PGSIZE) char stack[KSTACK_SIZE * 2 * (NPROC + 1)];
@@ -158,6 +159,22 @@ forkret(void)
 }
 
 void
+wakeup(void *chan)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    if(p != myproc()){
+      acquire(&p->lock);
+      if(p->state == SLEEPING && p->chan == chan) {
+        p->state = RUNNABLE;
+      }
+      release(&p->lock);
+    }
+  }
+}
+
+void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
@@ -221,7 +238,7 @@ exit(int status)
   p->state = ZOMBIE;
   p->xstate = status;
 
-  // wakeup(p->parent);
+  wakeup(p->parent);
   acquire(&p->lock);
 
   release(&wait_lock);
@@ -635,8 +652,56 @@ yield(void)
   release(&p->lock);
 }
 
+/**
+  * 调度函数, for循环不断寻找状态为RUNNABLE的进程
+  * 然后执行, 当只有一个shell进程时
+  * 使CPU进入低功率的模式
+  * 调度线程的工作都是通过该函数完成
+**/
 void
 scheduler()
 {
-  panic("scheduler todo");
+  struct proc *p;
+
+  struct cpu *c = mycpu();
+
+  int alive = 0;
+
+  c->proc = 0;
+
+  for(;;)
+  {
+    // 关闭中断
+    intr_on();
+    alive = 0;
+
+    int i;
+    for(i = 0; i < NPROC; i++)
+    {
+      p = &proc[i];
+      acquire(&p->lock);
+
+      if(p->state != UNUSED && p->state != ZOMBIE)
+        ++alive;
+
+      if(p->state == ZOMBIE) {
+        initproc->state = RUNNABLE;
+      }
+
+      if(p->state == RUNNABLE)
+      {
+        p->state = RUNNABLE;
+        c->proc = proc;
+        swtch(&c->context, &p->context);
+        c->proc = 0;
+      }
+
+      release(&p->lock);
+    }
+    if (alive < 1)
+    {
+      intr_on();
+      asm volatile("wfi");
+    }
+  }
 }

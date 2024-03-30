@@ -11,6 +11,7 @@ OBJS = \
 			 $T/entry.o\
 			 $T/main.o\
 			 $T/console.o\
+			 $T/swtch.o\
 			 $T/proc.o\
 			 $T/printf.o\
 			 $T/spinlock.o\
