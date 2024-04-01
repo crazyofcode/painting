@@ -5,7 +5,7 @@
 #define NCPU    2
 #define NBUF    20
 #define NDEV    10
-#define BSIZE   4096
+// #define BSIZE   4096
 #define NOFILE  120
 #define MAXOPBLOCKS 10
 #define MAXPATH 64

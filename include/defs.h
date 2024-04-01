@@ -33,6 +33,15 @@ void        wakeup(void *);
 // string.c
 void *      memset(void *addr, int c, uint size);
 void *      memmove(void *, void *, int);
+void*           memset(void*, int, uint);
+char*           safestrcpy(char*, const char*, int);
+int             strlen(const char*);
+int             strncmp(const char*, const char*, uint);
+char*           strncpy(char*, const char*, int);
+void            wnstr(unsigned short *dst, char const *src, int len);
+void            snstr(char *dst, unsigned short const *src, int len);
+int             wcsncmp(unsigned short const *s1, unsigned short const *s2, int len);
+char*           strchr(const char *s, char c);
 
 // printf.c
 void        printfinit();
@@ -69,6 +78,8 @@ void        uvmfree(pagetable_t, uint64);
 void        uvmunmap(pagetable_t, uint64, uint64, int);
 uint64      uvmdealloc(pagetable_t, uint64, uint64);
 uint64      walkaddr(pagetable_t, uint64);
+int         copyin2(char *dst, uint64 srcva, uint64 len);
+int         copyout2(uint64 dstva, char *src, uint64 len);
 
 // timer.c
 void        timerinit();

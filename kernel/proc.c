@@ -1,3 +1,8 @@
+/*
+ * change by lm. 4.1
+ * add either_copyin、either_copyout
+*/
+
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
@@ -703,5 +708,39 @@ scheduler()
       intr_on();
       asm volatile("wfi");
     }
+  }
+}
+
+
+/*add 4.1*/
+// 将数据从内核空间复制到用户空间，或者在同一内核空间地址之间复制数据
+// depending on usr_dst.
+// Returns 0 on success, -1 on error.
+int
+either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
+{
+  // struct proc *p = myproc();
+  if(user_dst){
+    // return copyout(p->pagetable, dst, src, len);
+    return copyout2(dst, src, len);
+  } else {
+    memmove((char *)dst, src, len);
+    return 0;
+  }
+}
+
+// Copy from either a user address, or kernel address,
+// depending on usr_src.
+// Returns 0 on success, -1 on error.
+int
+either_copyin(void *dst, int user_src, uint64 src, uint64 len)
+{
+  // struct proc *p = myproc();
+  if(user_src){
+    // return copyin(p->pagetable, dst, src, len);
+    return copyin2(dst, src, len);
+  } else {
+    memmove(dst, (char*)src, len);
+    return 0;
   }
 }
