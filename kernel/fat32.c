@@ -293,15 +293,15 @@ static uint rw_clus(uint32 cluster, int write, int user, uint64 data, uint off, 
 }
 
 /**
- * for the given entry, relocate the cur_clus field based on the off
- * @param   entry       modify its cur_clus field
- * @param   off         the offset from the beginning of the relative file
- * @param   alloc       whether alloc new cluster when meeting end of FAT chains
- * @return              the offset from the new cur_clus
+ * 重新定位文件目录项（struct dirent）中的cur_clus字段，使其指向与给定偏移量（off）对应的簇。
+ * entry：          指向文件或目录的目录项的指针，其cur_clus字段将被修改。
+ * off：            从文件开始到目标位置的偏移量（以字节为单位）。
+ * alloc：          一个布尔值，指示在遇到FAT链末尾时是否应分配新的簇。
+ * return          函数返回偏移量在簇内的位置，即off % fat.byts_per_clus
  */
 static int reloc_clus(struct dirent *entry, uint off, int alloc)
 {
-    int clus_num = off / fat.byts_per_clus;
+    int clus_num = off / fat.byts_per_clus;  //通过偏移量除以每簇的字节数来计算目标簇号。
     while (clus_num > entry->clus_cnt) {
         int clus = read_fat(entry->cur_clus);
         if (clus >= FAT32_EOC) {
@@ -331,8 +331,14 @@ static int reloc_clus(struct dirent *entry, uint off, int alloc)
     return off % fat.byts_per_clus;
 }
 
-/* like the original readi, but "reade" is odd, let alone "writee" */
-// Caller must hold entry->lock.
+/*
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 目录相关的读写 
+ * 从一个文件目录项（struct dirent）中读取数据的。
+ * 它接受一个文件目录项指针entry，一个用户空间的目标地址user_dst，一个目标地址dst，一个偏移量off和一个要读取的字节数n作为参数。
+ * * * * * * * * * * * * * * * * * * 
+ * 
+ */ 
 int eread(struct dirent *entry, int user_dst, uint64 dst, uint off, uint n)
 {
     if (off > entry->file_size || off + n < off || (entry->attribute & ATTR_DIRECTORY)) {
@@ -393,6 +399,10 @@ int ewrite(struct dirent *entry, int user_src, uint64 src, uint off, uint n)
 // which forms a linked list from the final file to the root. Thus, we use the "parent" pointer 
 // to recognize whether an entry with the "name" as given is really the file we want in the right path.
 // Should never get root by eget, it's easy to understand.
+/*
+ *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *
+ * 目录缓存，与buf缓存一样是个双向链表
+*/
 static struct dirent *eget(struct dirent *parent, char *name)
 {
     struct dirent *ep;
@@ -425,7 +435,12 @@ static struct dirent *eget(struct dirent *parent, char *name)
     return 0;
 }
 
-// trim ' ' in the head and tail, '.' in head, and test legality
+/* 
+ * * * * * * * * * * * * * * * * 
+ * 关于文件名(路径)
+*/
+/*清理并格式化一个文件名。*/
+/*首先去除文件名头部的前导空格和点号，然后检查文件名中的每个字符是否合法。*/
 char *formatname(char *name)
 {
     static char illegal[] = { '\"', '*', '/', ':', '<', '>', '?', '\\', '|', 0 };
@@ -434,7 +449,7 @@ char *formatname(char *name)
     for (p = name; *p; p++) {
         char c = *p;
         if (c < 0x20 || strchr(illegal, c)) {
-            return 0;
+            return 0;      // 找到了不合法的字符
         }
     }
     while (p-- > name) {
@@ -445,7 +460,7 @@ char *formatname(char *name)
     }
     return name;
 }
-
+/*生成一个短文件名。*/
 static void generate_shortname(char *shortname, char *name)
 {
     static char illegal[] = { '+', ',', ';', '=', '[', ']', 0 };   // these are legal in l-n-e but not s-n-e
@@ -486,7 +501,7 @@ static void generate_shortname(char *shortname, char *name)
         shortname[i++] = ' ';
     }
 }
-
+/*计算一个短文件名的校验和。*/
 uint8 cal_checksum(uchar* shortname)
 {
     uint8 sum = 0;
@@ -495,6 +510,7 @@ uint8 cal_checksum(uchar* shortname)
     }
     return sum;
 }
+
 
 /**
  * Generate an on disk format entry and write to the disk. Caller must hold dp->lock

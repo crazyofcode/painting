@@ -8,6 +8,10 @@
         "spinlock.h": "c",
         "virtio.h": "c",
         "typeinfo": "c",
-        "fat32.h": "c"
+        "fat32.h": "c",
+        "param.h": "c",
+        "proc.h": "c",
+        "fcntl.h": "c",
+        "syscall.h": "c"
     }
 }

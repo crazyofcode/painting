@@ -134,7 +134,7 @@
 #include "spinlock.h"
 #include "file.h"
 #include "fat32.h"
-#include "trap.h"
+// #include "trap.h"
 
 // Saved registers for kernel context switches.
 struct context {
@@ -185,7 +185,7 @@ struct proc {
   uint64 sz;                   // Size of process memory (bytes)
   pagetable_t pagetable;       // User page table
   pagetable_t kpagetable;      // Kernel page table
-  struct trapframe *trapframe; // data page for trampoline.S
+  // struct trapframe *trapframe; // data page for trampoline.S
   struct context context;      // swtch() here to run process
   struct file *ofile[NOFILE];  // Open files
   struct dirent *cwd;          // Current directory
