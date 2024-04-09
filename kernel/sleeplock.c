@@ -1,3 +1,7 @@
+/*
+ * changed by lm. 3.31
+ * add rleasesleep
+*/
 #include "types.h"
 #include "param.h"
 #include "riscv.h"
@@ -39,4 +43,15 @@ int holdingsleep(struct sleeplock *lk)
   r = lk->locked && (lk->pid == myproc()->pid);
   release(&lk->lk);
   return r;
+}
+
+// add 3.31
+void
+releasesleep(struct sleeplock *lk)
+{
+  acquire(&lk->lk);
+  lk->locked = 0;
+  lk->pid = 0;
+  wakeup(lk);
+  release(&lk->lk);
 }

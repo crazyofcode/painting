@@ -1,3 +1,7 @@
+/*
+ * change by lm. 4.1
+ * add copyout2、copyin
+*/
 #include "types.h"
 #include "memlayout.h"
 #include "riscv.h"
@@ -279,7 +283,17 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   }
   return 0;
 }
-
+/* add 4.1*/
+int
+copyout2(uint64 dstva, char *src, uint64 len)
+{
+  uint64 sz = myproc()->sz;
+  if (dstva + len > sz || dstva >= sz) {
+    return -1;
+  }
+  memmove((void *)dstva, src, len);
+  return 0;
+}
 // Copy from user to kernel.
 // Copy len bytes to dst from virtual address srcva in a given page table.
 // Return 0 on success, -1 on error.
@@ -304,7 +318,17 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
   }
   return 0;
 }
-
+/* add 4.1*/
+int
+copyin2(char *dst, uint64 srcva, uint64 len)
+{
+  uint64 sz = myproc()->sz;
+  if (srcva + len > sz || srcva >= sz) {
+    return -1;
+  }
+  memmove(dst, (void *)srcva, len);
+  return 0;
+}
 // Copy a null-terminated string from user to kernel.
 // Copy bytes to dst from virtual address srcva in a given page table,
 // until a '\0', or max.

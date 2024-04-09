@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "sleeplock.h": "c",
+        "riscv.h": "c",
+        "stdarg.h": "c",
+        "printf.h": "c",
+        "types.h": "c",
+        "spinlock.h": "c",
+        "virtio.h": "c",
+        "typeinfo": "c",
+        "fat32.h": "c",
+        "param.h": "c",
+        "proc.h": "c",
+        "fcntl.h": "c",
+        "syscall.h": "c"
+    }
+}
