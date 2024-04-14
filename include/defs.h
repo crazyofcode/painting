@@ -38,7 +38,7 @@ void *      memmove(void *, void *, int);
 void        printfinit();
 void        panic(char *);
 void        printf(char *, ...);
-void        TODO();
+void        backtrace();
 
 // console.c
 void        consoleinit();

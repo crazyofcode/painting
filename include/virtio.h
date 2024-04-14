@@ -1,6 +1,8 @@
 #ifndef __VIRTIO_H__
 #define __VIRTIO_H__
 
+#include "types.h" /* add ....*/
+#include "buf.h"  /* add ....*/
 //
 // virtio device definitions.
 // for both the mmio interface, and virtio descriptors.
@@ -21,11 +23,16 @@
 #define VIRTIO_MMIO_QUEUE_SEL		0x030 // select queue, write-only
 #define VIRTIO_MMIO_QUEUE_NUM_MAX	0x034 // max size of current queue, read-only
 #define VIRTIO_MMIO_QUEUE_NUM		0x038 // size of current queue, write-only
+
+#define VIRTIO_MMIO_QUEUE_ALIGN		0x03c // used ring alignment, write-only add .............
+#define VIRTIO_MMIO_QUEUE_PFN		0x040 // physical page number for queue, read/write add ..........
+
 #define VIRTIO_MMIO_QUEUE_READY		0x044 // ready bit
 #define VIRTIO_MMIO_QUEUE_NOTIFY	0x050 // write-only
 #define VIRTIO_MMIO_INTERRUPT_STATUS	0x060 // read-only
 #define VIRTIO_MMIO_INTERRUPT_ACK	0x064 // write-only
 #define VIRTIO_MMIO_STATUS		0x070 // read/write
+/* OK */
 #define VIRTIO_MMIO_QUEUE_DESC_LOW	0x080 // physical address for descriptor table, write-only
 #define VIRTIO_MMIO_QUEUE_DESC_HIGH	0x084
 #define VIRTIO_MMIO_DRIVER_DESC_LOW	0x090 // physical address for available ring, write-only
@@ -140,5 +147,10 @@ static struct disk {
   struct spinlock vdisk_lock;
   
 } disk;
+
+/* add ................*/
+void            virtio_disk_init(void);
+void            virtio_disk_rw(struct buf *b, int write);
+void            virtio_disk_intr(void);
 
 #endif // !__VIRTIO_H__
