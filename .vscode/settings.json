@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "param.h": "c",
+        "types.h": "c",
+        "spinlock.h": "c",
+        "sleeplock.h": "c",
+        "buf.h": "c",
+        "proc.h": "c",
+        "stat.h": "c",
+        "file.h": "c",
+        "syscall.h": "c",
+        "fcntl.h": "c",
+        "memlayout.h": "c",
+        "virtio.h": "c"
+    }
+}

@@ -1,11 +1,33 @@
+/*
+ * 将基于 block 的 cache.改为基于 sector 的 cache.
+ * BSIZE 在此定义  
+*/
+
+#ifndef __BUF_H
+#define __BUF_H
+
+#define BSIZE 512 
+#include "sleeplock.h"
+
 struct buf {
-  int valid;   // has data been read from disk?
-  int disk;    // does disk "own" buf?,  表示该缓冲区的数据已经写到磁盘, 缓冲区中的内容可能会发生变化
+  int valid;
+  int disk;
   uint dev;
-  uint blockno;
+  uint sectorno;
   struct sleeplock lock;
-  uint refcnt;      // 引用次数
-  struct buf *prev; // LRU cache list
-  struct buf *next;
+  uint refcnt;
+  struct buf* prev;
+  struct buf* next;
   uchar data[BSIZE];
+  
 };
+
+/* cache 相关的操作 */
+void            binit(void);
+struct buf*     bread(uint, uint);
+void            brelse(struct buf*);
+void            bwrite(struct buf*);
+#endif
+
+
+
