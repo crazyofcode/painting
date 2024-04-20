@@ -29,6 +29,9 @@ OBJS = \
 			 $T/virtio.o\
 			 $T/kernelvec.o\
 
+PROCS = \
+				$U/init.o\
+
 
 $T/%.o: $K/%.S
 	$(shell mkdir -p $(T))
@@ -55,5 +58,5 @@ qemu-gdb: $T/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 clean:
-	rm -rf ./build
+	rm -rf ./build ./user/initcode
 PYTHON: clean
