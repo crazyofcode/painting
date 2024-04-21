@@ -29,10 +29,6 @@ OBJS = \
 			 $T/virtio.o\
 			 $T/kernelvec.o\
 
-PROCS = \
-				$U/init.o\
-
-
 $T/%.o: $K/%.S
 	$(shell mkdir -p $(T))
 	$(CC) $(ASFLAGS) -c $< -o $@
@@ -50,6 +46,32 @@ $U/initcode: $U/initcode.S
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $T/initcode.out $T/initcode.o
 	$(OBJCOPY) -S -O binary $T/initcode.out $U/initcode
 	$(OBJDUMP) -S $T/initcode.o > $T/initcode.asm
+
+ULIB = \
+				$U/ulib.o\
+				$U/printf.o\
+				$U/usys.o\
+				$U/umalloc.o\
+
+_%: %.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
+$U/usys.S : $U/usys.pl
+	perl $U/usys.pl > $U/usys.S
+
+$U/usys.o : $U/usys.S
+	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+
+# Prevent deletion of intermediate files, e.g. cat.o, after first build, so
+# that disk image changes after first build are persistent until clean.  More
+# details:
+# http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
+.PRECIOUS: %.o
+
+UPROCES = \
+					$U/_init\
 
 qemu: $T/kernel
 	$(QEMU)	$(QEMUOPTS)

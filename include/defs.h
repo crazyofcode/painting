@@ -108,6 +108,8 @@ void      plic_complete(int);
 // virtio.c
 void      devinit();
 void      virtiointr();
+void      virtioread();
+void      virtiowrite();
 
 // syscall.c
 void      syscall(void);
