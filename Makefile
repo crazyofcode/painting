@@ -50,8 +50,8 @@ $U/initcode: $U/initcode.S
 ULIB = \
 				$U/ulib.o\
 				$U/printf.o\
-				$U/usys.o\
-				$U/umalloc.o\
+				# $U/usys.o\
+				# $U/umalloc.o\
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^

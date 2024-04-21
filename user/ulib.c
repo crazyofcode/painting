@@ -1,5 +1,5 @@
 #include "types.h"
-#include "stat.h"
+// #include "stat.h"
 #include "fcntl.h"
 #include "user.h"
 
@@ -85,9 +85,10 @@ void *
 memset(void *dst, int c, size_t len)
 {
   size_t i;
+  char *cdst = (char *)dst;
 
   for(i = 0; i < len; i++)
-    *(dst + i) = c;
+    *(cdst + i) = c;
 
   return dst;
 }
