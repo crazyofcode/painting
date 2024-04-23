@@ -46,6 +46,7 @@ main(uint64 hartid, uint64 dtb_pa)
     devinit();
     inittasktable();
     initfirsttask();
+    devswinit();
     int i;
     for(i = 0; i < NCPU; i++)
     {

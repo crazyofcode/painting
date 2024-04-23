@@ -131,10 +131,29 @@ proc_pagetable(struct proc *p)
 }
 
 int
-either_copy(int user, uint64 dst, void *src, uint len)
+either_copyout(int user, uint64 dst, void *src, uint64 len)
 {
-  while(1)
-    ;
+  struct proc *p = myproc();
+
+  if(user) {
+    return copyout(p->pagetable, dst, (char *)src, len);
+  } else {
+    memmove((char *)dst, src, len);
+    return 0;
+  }
+}
+
+int
+either_copyin(void *dst, int user, uint64 src, uint64 len)
+{
+  struct proc *p = myproc();
+
+  if(user) {
+    return copyin(p->pagetable, (char *)dst, src, len);
+  } else {
+    memmove(dst, (char *)src, len);
+    return 0;
+  }
 }
 
 // A fork child's very first scheduling by scheduler()

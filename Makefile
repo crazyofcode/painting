@@ -28,6 +28,7 @@ OBJS = \
 			 $T/syscall.o\
 			 $T/virtio.o\
 			 $T/kernelvec.o\
+			 $T/file.o\
 
 $T/%.o: $K/%.S
 	$(shell mkdir -p $(T))

@@ -14,9 +14,10 @@ struct superblock;
 int         cpuid();
 struct cpu* mycpu();
 struct proc*myproc();
-int         killed(struct proc *);
-void        sleep(void *, struct spinlock *);
-int         either_copy(int, uint64, void *, uint);
+int             killed(struct proc *);
+void          sleep(void *, struct spinlock *);
+int             either_copyout(int, uint64, void *, uint64);
+int             either_copyin(void *, int, uint64, uint64);
 void        cpuinit(uint64);
 void        sched();
 void        reparent(struct proc *);
@@ -108,8 +109,11 @@ void      plic_complete(int);
 // virtio.c
 void      devinit();
 void      virtiointr();
-void      virtioread();
-void      virtiowrite();
+void      Virtioread();
+void      Virtiowrite();
 
 // syscall.c
 void      syscall(void);
+
+// file.c
+void        devswinit();
