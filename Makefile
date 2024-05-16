@@ -11,6 +11,7 @@ OBJS = \
 			 $T/entry.o\
 			 $T/main.o\
 			 $T/proc.o\
+			 $T/console.o\
 
 
 $T/%.o: $K/%.S

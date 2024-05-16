@@ -6,6 +6,5 @@ uint64          cpuid();
 
 // console.c
 void            consoleinit();
-void            consoletest();
 
 #endif // !__DEFS_H__
