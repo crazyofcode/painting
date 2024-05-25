@@ -3,6 +3,7 @@ U = user
 T = build
 CPUS := 4
 
+$(shell mkdir -p $(T))
 
 include ./scripts/config.mk
 
@@ -12,10 +13,17 @@ OBJS = \
 			 $T/main.o\
 			 $T/proc.o\
 			 $T/console.o\
+			 $T/spinlock.o\
+			 $T/printf.o\
+			 $T/sleeplock.o\
+			 $T/kalloc.o\
+			 $T/string.o\
+			 $T/trampoline.o\
+			 $T/vm.o
+
 
 
 $T/%.o: $K/%.S
-	$(shell mkdir -p $(T))
 	$(CC) $(ASFLAGS) -c $< -o $@
 
 $T/%.o: $K/%.c

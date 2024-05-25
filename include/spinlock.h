@@ -1,7 +1,11 @@
 #ifndef __SPINLOCK_H__
 #define __SPINLOCK_H__
 
-extern    struct spinlock;
+struct spinlock {
+  char        *name;
+  uint32      lock;
+  struct cpu  *cpu;
+} ;
 
 void      initlock(struct spinlock *, char *);
 void      acquire(struct spinlock *);

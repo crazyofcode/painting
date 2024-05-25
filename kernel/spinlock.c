@@ -1,14 +1,11 @@
 #include <types.h>
+#include <param.h>
 #include <riscv.h>
+#include <proc.h>
 #include <spinlock.h>
+#include <defs.h>
 
 #define HOLDING(lk)       (lk->lock == LOCK && lk->cpu == mycpu())
-
-struct spinlock {
-  char  *name;
-  uint   lock;
-  struct cpu *cpu;
-} ;
 
 void
 initlock(struct spinlock *lk, char *name) {
@@ -34,7 +31,16 @@ push_off() {
 
 static void
 pop_off() {
-  
+  struct cpu *c = mycpu();
+  // check the interrupt state
+  if (intr_get())
+    panic("pop_off - interruptible");
+
+  if (c->noff < 1)
+    panic("pop_off - noff has been set to zero");
+  --c->noff;
+  if (c->noff == 1 && c->intena)
+    intr_on();
 }
 
 // 获取自旋锁
@@ -43,13 +49,13 @@ acquire(struct spinlock *lk) {
   push_off();
 
   // 循环等待, 直到 lk's state == available
-  while (HOLDING(lk))
-    ;
+  if (HOLDING(lk))
+    panic("acquire");
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
   //   a5 = 1
   //   s1 = &lk->locked
   //   amoswap.w.aq a5, a5, (s1)
-  while(__sync_lock_test_and_set(&lk->locked, 1) != 0)
+  while(__sync_lock_test_and_set(&lk->lock, 1) != 0)
     ;
 
   // Tell the C compiler and the processor to not move loads or stores
@@ -67,7 +73,7 @@ void
 release(struct spinlock *lk) {
   // 判断 lk's state == unavailable
   if (!HOLDING(lk)) {
-    // panic("release!");
+    panic("release!");
   }
 
   lk->cpu = 0;
@@ -86,8 +92,8 @@ release(struct spinlock *lk) {
   // On RISC-V, sync_lock_release turns into an atomic swap:
   //   s1 = &lk->locked
   //   amoswap.w zero, zero, (s1)
-  __sync_lock_release(&lk->locked);
+  __sync_lock_release(&lk->lock);
 
-  pop_off()
+  pop_off();
 }
 

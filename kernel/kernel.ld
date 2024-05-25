@@ -4,7 +4,7 @@ ENTRY(_entry)
 SECTIONS
 
 {
-  /* rust-sbi 在 M-mode 下初始化相关的寄存器后进入 kernel 的地址是 0x80020000 */
+  /* rust-sbi 在 M-mode 下初始化相关的寄存器后进入 kernel 的地址是 0x80200000 */
   . = 0x80200000;
 
   .text : {
