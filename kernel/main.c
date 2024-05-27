@@ -23,6 +23,7 @@ main()
     kvminit();      // create kernel page table
     uint32 num = 0x00646c72;
     printf("h%x wo%s\n", 57616, &num);
+    kvminithart();  // s-mode page address translation and protection
     printf("0x%08x\n", 255);
     printf("%d\n", -1);
     while (1)

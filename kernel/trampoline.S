@@ -1,4 +1,4 @@
-.section  trampsec
+.section  trampvec
 .globl trampoline
 trampoline:
   .align  4

@@ -66,7 +66,7 @@ consoleread(int user_dst, uint64 dst, int n) {
     }
 
     cbuf = c;
-    if (either_copyin(user_dst, dst, &cbuf, 1) == -1)    // TODO()
+    if (either_copyout(user_dst, &cbuf, dst, 1) == -1)
       break;
 
     dst++;
@@ -81,8 +81,16 @@ consoleread(int user_dst, uint64 dst, int n) {
 
 int
 consolewrite(int user_src, uint64 src, int n) {
-  // TODO()
-  return 0;
+  int i;
+  char c;
+
+  for (i = 0; i < n; i++) {
+    if (either_copyin(user_src, src+i, &c, i) == -1)
+      break;
+    sbi_console_putchar(c);
+  }
+
+  return i;
 }
 
 void

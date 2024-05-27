@@ -10,9 +10,8 @@ SECTIONS
   .text : {
     *(.text .text.*)
     . = ALIGN(0x1000);
-    /* _trampoline = .; */
     *(trampvec);
-    /*ASSERT(_trampoline - . == 4k, "error: trampline large than one page");*/
+    . = ALIGN(0x1000);
     PROVIDE(etext = .);
   }
 

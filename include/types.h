@@ -6,9 +6,9 @@ typedef unsigned long   uint64;
 typedef unsigned short  uint16;
 typedef unsigned char   uint8;
 
-typedef uint64  pde_t;
-typedef uint64  uintptr_t;
-typedef uint64  *pagetable_t;
-typedef uint64  pte_t;
+typedef uint64    pde_t;
+typedef uint64    uintptr_t;
+typedef uint64 *  pagetable_t;
+typedef uint64    pte_t;
 
 #endif // !__TYPES_H__

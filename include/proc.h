@@ -12,6 +12,7 @@ struct proc {
   struct context      context;       // switch() here to run process, preserve site
 
   int                 killed;         // if not zero , have been killed
+  pagetable_t         pagetable;
   // ... more infomation waiting to add
 } ;
 
