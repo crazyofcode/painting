@@ -8,7 +8,7 @@
 
 // VIRT_PLIC
 // riscv_plic.adoc
-#define   PLIC            0x0c000000
+#define   PLIC            0x0c000000L
 #define   PLIC_PRIORITY   (PLIC + 0x0)
 #define   PLIC_PENDING    (PLIC + 0x1000)
 #define   PLIC_MENABLE(hart)    (PLIC + 0x2000 + (hart) * 0x100)

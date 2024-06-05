@@ -84,4 +84,10 @@ w_satp(uint64 x)
   asm volatile("csrw  satp, %0" : : "r"(x) );
 }
 
+static inline void
+w_stvec(uint64 x)
+{
+  asm volatile("csrw  stvec, %0" : : "r"(x) );
+}
+
 #endif // !__RISCV_H__

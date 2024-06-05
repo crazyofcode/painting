@@ -19,11 +19,17 @@ main()
     printfinit();
     printflogo();
     kmeminit();     // physical page allocator
-    printf("hello world\n");
     kvminit();      // create kernel page table
+    kvminithart();  // s-mode page address translation and protection
+                    // S-mode turn on paging
+    procinit();     // initialize process
+    trapinit();     // trap vector -> timer
+    traphartinit(); // install kernel trap vector
+    plicinit();     // platform interrupt control
+    plichartinit(); // ask PLIC for device interrupts
+    printf("hello world\n");
     uint32 num = 0x00646c72;
     printf("h%x wo%s\n", 57616, &num);
-    kvminithart();  // s-mode page address translation and protection
     printf("0x%08x\n", 255);
     printf("%d\n", -1);
     while (1)

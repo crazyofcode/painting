@@ -19,7 +19,10 @@ OBJS = \
 			 $T/kalloc.o\
 			 $T/string.o\
 			 $T/trampoline.o\
-			 $T/vm.o
+			 $T/vm.o\
+			 $T/trap.o\
+			 $T/kernelvec.o\
+			 $T/plic.o
 
 
 

@@ -2,14 +2,34 @@
 #include <param.h>
 #include <riscv.h>
 #include <memlayout.h>
+#include <spinlock.h>
 #include <proc.h>
 #include <kalloc.h>
 #include <defs.h>
 #include <string.h>
-#include <spinlock.h>
 
 struct cpu cpus[NCPU];
 struct proc proc[NPROC];
+
+int nextpid = 1;
+struct spinlock next_lock;
+
+struct spinlock wait_lock;
+
+void
+procinit()
+{
+  initlock(&next_lock, "next_pid");
+  initlock(&wait_lock, "wait_pid");
+
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++) {
+    initlock(&p->lock, "proc");
+    p->state = UNUSED;
+    p->kstack = KSTACK((int)(p - proc));
+    p->killed = 0;
+  }
+}
 
 // 通过 inline func 获取 hart id
 uint64
@@ -37,13 +57,13 @@ myproc()
 int
 killed(struct proc *c)
 {
-  acquire(c->lk);
+  acquire(&c->lock);
   if (c->killed) {
-    release(c->lk);
+    release(&c->lock);
     return 1;
   }
 
-  release(c->lk);
+  release(&c->lock);
   return 0;
 }
 
