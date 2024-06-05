@@ -56,4 +56,5 @@ build/
 # file system image
 fs.img
 
+run.sh
 tags

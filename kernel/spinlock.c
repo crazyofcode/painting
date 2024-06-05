@@ -48,7 +48,6 @@ void
 acquire(struct spinlock *lk) {
   push_off();
 
-  // 循环等待, 直到 lk's state == available
   if (HOLDING(lk))
     panic("acquire");
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
