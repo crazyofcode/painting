@@ -42,5 +42,9 @@ static inline void sbi_console_putchar(int ch) {
   SBI_CALL_1(console_putchar, ch);
 }
 
+static inline void sbi_set_timer(uint64 t)
+{
+  SBI_CALL_1(set_timer, t);
+}
 
 #endif // ! __RUSTSBI_H__

@@ -2,10 +2,27 @@
 #define __PROC_H__
 
 struct context {
-//  TODO()
+  uint64 ra;
+  uint64 sp;
+
+  // context swtch with no need for save all register
+  // save all callee-save register
+  uint64 s0;
+  uint64 s1;
+  uint64 s2;
+  uint64 s3;
+  uint64 s4;
+  uint64 s5;
+  uint64 s6;
+  uint64 s7;
+  uint64 s8;
+  uint64 s9;
+  uint64 s10;
+  uint64 s11;
 } ;
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+// enum PRIORITY  { FIRST = 1, SECOND, THIRD, FORTH, FIFTH};
 
 struct proc {
   struct spinlock     lock;
@@ -18,6 +35,8 @@ struct proc {
   enum procstate      state;
   uint64              kstack;
 
+  void *              chan;
+  // uint32              priority;
   // ... more infomation waiting to add
 } ;
 

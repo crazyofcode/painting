@@ -10,6 +10,8 @@ int             either_copyin(int, uint64, void *, uint64);
 int             either_copyout(int, void *, uint64, uint64);
 void            proc_mapstacks(pagetable_t);
 void            procinit();
+void            yield();
+void            wakeup(void *);
 
 // console.c
 void            consoleinit();

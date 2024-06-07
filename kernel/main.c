@@ -3,6 +3,7 @@
 #include <rustsbi.h>
 #include <kalloc.h>
 #include <defs.h>
+#include <timer.h>
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
@@ -25,9 +26,10 @@ main()
     procinit();     // initialize process
     trapinit();     // trap vector -> timer
     traphartinit(); // install kernel trap vector
+    printf("hello world\n");
     plicinit();     // platform interrupt control
     plichartinit(); // ask PLIC for device interrupts
-    printf("hello world\n");
+    timerinit();    // timer interrupt
     uint32 num = 0x00646c72;
     printf("h%x wo%s\n", 57616, &num);
     printf("0x%08x\n", 255);

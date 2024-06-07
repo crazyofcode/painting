@@ -20,9 +20,11 @@ OBJS = \
 			 $T/string.o\
 			 $T/trampoline.o\
 			 $T/vm.o\
+			 $T/swtch.o\
 			 $T/trap.o\
 			 $T/kernelvec.o\
-			 $T/plic.o
+			 $T/plic.o\
+			 $T/timer.o
 
 
 

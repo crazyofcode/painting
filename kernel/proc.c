@@ -28,6 +28,7 @@ procinit()
     p->state = UNUSED;
     p->kstack = KSTACK((int)(p - proc));
     p->killed = 0;
+    // p->priority = FIRST;
   }
 }
 
@@ -65,6 +66,20 @@ killed(struct proc *c)
 
   release(&c->lock);
   return 0;
+}
+
+// wake up all sleep on chan
+void
+wakeup(void *chan) {
+  struct proc *p;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    if (p->state == SLEEPING && p->chan == chan) {
+      acquire(&p->lock);
+      p->state = RUNNABLE;
+      release(&p->lock);
+    }
+  }
 }
 
 int
@@ -115,3 +130,29 @@ proc_mapstacks(pagetable_t kpgtbl)
   }
 }
 
+extern void swtch(struct context *old, struct context *new);
+
+void
+sched(struct proc *p)
+{
+  struct proc 
+}
+void
+yield()
+{
+  printf("yield\n");
+  struct cpu *c = mycpu();
+  struct proc *current_p;
+
+  current_p = c->proc;
+
+  current_p->state = RUNNABLE;
+
+  struct proc *p;
+  for (p = proc; p < &proc[NPROC]; p++) {
+    // 找到优先级
+  }
+
+  if (p >= &proc[NPROC])
+    current_p->state = RUNNING;
+}

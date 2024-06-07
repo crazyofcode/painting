@@ -5,6 +5,25 @@
 #define     SSTATUS_SIE       (1L << 1)
 
 
+// Supervisor Interrupt Enable
+#define SIE_SEIE (1L << 9) // external
+#define SIE_STIE (1L << 5) // timer
+#define SIE_SSIE (1L << 1) // software
+
+static inline void 
+w_sie(uint64 x)
+{
+  asm volatile("csrw sie, %0" : : "r" (x));
+}
+
+static inline uint64
+r_sie()
+{
+  uint64 x;
+  asm volatile("csrr %0, sie" : "=r" (x) );
+  return x;
+}
+
 static inline uint64
 r_sstatus()
 {
