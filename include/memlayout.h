@@ -1,38 +1,16 @@
-#ifndef __MEMLAYOUT_H__
-#define __MEMLAYOUT_H__
+#ifndef MEMLAYOUT_H__
 
-#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
-#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
-
-#define       PGSIZE          4096
-
-// VIRT_PLIC
-// riscv_plic.adoc
-#define   PLIC            0x0c000000L
-#define   PLIC_PRIORITY   (PLIC + 0x0)
-#define   PLIC_PENDING    (PLIC + 0x1000)
-#define   PLIC_MENABLE(hart)    (PLIC + 0x2000 + (hart) * 0x100)
-#define   PLIC_SENABLE(hart)    (PLIC + 0x2080 + (hart) * 0x100)
-#define   PLIC_MPRIORITY(hart)  (PLIC + 0x200000 + (hart) * 0x2000)
-#define   PLIC_SPRIORITY(hart)  (PLIC + 0x201000 + (hart) * 0x2000)
-#define   PLIC_MCLAIM(hart)     (PLIC + 0x200004 + (hart) * 0x2000)
-#define   PLIC_SCLAIM(hart)     (PLIC + 0x201004 + (hart) * 0x2000)
-
-// VIRT_UART
-#define   VIRT_UART0      0x10000000
-#define   UART0_IRQ       10
-
-// VIRTIO
-#define   VIRTIO          0x10001000
-#define   VIRTIO_IRQ      1
-
-
+#define   PGSIZE      4096
+// one beyond the highest possible virtual address.
+// MAXVA is actually one bit less than the max allowed by
+// Sv39, to avoid having to sign-extend virtual addresses
+// that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
 
 // the kernel expects there to be RAM
 // for use by the kernel and user pages
 // from physical address 0x80000000 to PHYSTOP.
-#define KERNBASE 0x80000000L
+#define KERNBASE 0x80200000L
 #define PHYSTOP (KERNBASE + 128*1024*1024)
 
 // map the trampoline page to the highest address,
@@ -53,5 +31,4 @@
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
-
-#endif // !__MEMLAYOUT_H__
+#endif //MEMLAYOUT_H__

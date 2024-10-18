@@ -1,42 +1,40 @@
-#include <types.h>
 #include <param.h>
-#include <rustsbi.h>
-#include <kalloc.h>
-#include <defs.h>
-#include <timer.h>
+#include <sbi.h>
+#include <memlayout.h>
+#include <riscv.h>
+#include <console.h>
+#include <macro.h>
+#include <stdio.h>
+#include <pm.h>
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
+volatile static int started = 0;
 
-// sbi 初始化后通过 entry.S 进入该函数
-void
-main()
-{
-  // 如果当前的 hart id = 0
-  // 需要去初始化 S-mode 下的 OS 的环境
-  if (cpuid() == 0)
-  {
-    consoleinit();
+void main(uint64_t hartid) {
+  w_tp(hartid);
+  if (started == 0) {
+    console_init();
     printfinit();
-    printflogo();
-    kmeminit();     // physical page allocator
-    kvminit();      // create kernel page table
-    kvminithart();  // s-mode page address translation and protection
-                    // S-mode turn on paging
-    procinit();     // initialize process
-    trapinit();     // trap vector -> timer
-    traphartinit(); // install kernel trap vector
-    printf("hello world\n");
-    plicinit();     // platform interrupt control
-    plichartinit(); // ask PLIC for device interrupts
-    timerinit();    // timer interrupt
-    uint32 num = 0x00646c72;
-    printf("h%x wo%s\n", 57616, &num);
-    printf("0x%08x\n", 255);
-    printf("%d\n", -1);
-    while (1)
-      ;
+    printf("\n");
+    printf("Hello, Welcome to patingOS(hart %d):\n", hartid);
+    kpminit();
+    __sync_synchronize();
+    started = 1;
+    for (int i = 0; i < NCPU; i++) {
+      if (i != hartid)
+        sbi_hart_start(i, KERNBASE, 0);
+    }
   } else {
-    printf("hard id -> %d\n", cpuid());
+    while(started == 0)
+      ;
+    __sync_synchronize();
+    printf("hart %d starting\n", hartid);
+    // kvminithart();    // turn on paging
+    // trapinithart();   // install kernel trap vector
+    // plicinithart();   // ask PLIC for device interrupts
   }
+
+  while(1)
+    ;
 }

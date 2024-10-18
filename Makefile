@@ -11,22 +11,14 @@ include ./scripts/config.mk
 OBJS = \
 			 $T/entry.o\
 			 $T/main.o\
-			 $T/proc.o\
-			 $T/console.o\
-			 $T/spinlock.o\
 			 $T/printf.o\
-			 $T/sleeplock.o\
-			 $T/kalloc.o\
-			 $T/string.o\
+			 $T/spinlock.o\
+			 $T/console.o\
+			 $T/proc.o\
 			 $T/trampoline.o\
-			 $T/vm.o\
-			 $T/swtch.o\
-			 $T/trap.o\
-			 $T/kernelvec.o\
-			 $T/plic.o\
-			 $T/timer.o
-
-
+			 $T/string.o\
+			 $T/pm.o\
+			 $T/list.o\
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@
@@ -34,16 +26,16 @@ $T/%.o: $K/%.S
 $T/%.o: $K/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$T/kernel: $(OBJS) $K/kernel.ld $U/initcode
+$T/kernel: $(OBJS) $K/kernel.ld # $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $T/kernel $(OBJS)
 	$(OBJDUMP) -S $T/kernel > $T/kernel.asm
 	$(OBJDUMP) -t $T/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $T/kernel.sym
 
-$U/initcode: $U/initcode.S
-	$(CC) $(CFLAGS) -I$(LIB_PATH) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $T/initcode.o
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $T/initcode.out $T/initcode.o
-	$(OBJCOPY) -S -O binary $T/initcode.out $U/initcode
-	$(OBJDUMP) -S $T/initcode.o > $T/initcode.asm
+# $U/initcode: $U/initcode.S
+# 	$(CC) $(CFLAGS) -I$(LIB_PATH) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $T/initcode.o
+# 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $T/initcode.out $T/initcode.o
+# 	$(OBJCOPY) -S -O binary $T/initcode.out $U/initcode
+# 	$(OBJDUMP) -S $T/initcode.o > $T/initcode.asm
 
 qemu: $T/kernel
 	$(QEMU)	$(QEMUOPTS)

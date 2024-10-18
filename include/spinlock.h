@@ -1,14 +1,19 @@
-#ifndef __SPINLOCK_H__
-#define __SPINLOCK_H__
+#ifndef SPINLOCK_H__
+#define SPINLOCK_H__
 
 struct spinlock {
-  char        *name;
-  uint32      lock;
-  struct cpu  *cpu;
-} ;
+  uint32_t    locked;
+  struct cpu *cpu;
 
-void      initlock(struct spinlock *, char *);
-void      acquire(struct spinlock *);
-void      release(struct spinlock *);
+  char      *name;
+};
 
-#endif // !__SPINLOCK_H__
+void initlock(struct spinlock *, char *);
+void acquire(struct spinlock *);
+void release(struct spinlock *);
+void push_off(void);
+void pop_off(void);
+
+
+uint32_t  holding(struct spinlock *);
+#endif //!SPINLOCK_H__

@@ -1,11 +1,7 @@
 #include <types.h>
-#include <param.h>
 #include <string.h>
-#include <defs.h>
 
-void *
-memset(void * dst, int c, uint32 n)
-{
+void * memset(void * dst, int c, uint32_t n) {
   char *cdst = (char *)dst;
 
   int i;
@@ -15,9 +11,7 @@ memset(void * dst, int c, uint32 n)
   return dst;
 }
 
-void *
-memmove(void *dst, const void *src, uint32 n)
-{
+void * memmove(void *dst, const void *src, uint32_t n) {
   const char *s;
   char *d;
 

@@ -7,11 +7,9 @@ OBJDUMP = $(TOOLPREFIX)objdump
 
 
 LIB_PATH := ./include
-SBI-QEMU := ./opensbi/sbi-qemu
 
 QEMUOPTS = -machine virt -cpu rv64 -kernel $T/kernel -m 512M -smp $(CPUS) -nographic
-# QEMUOPTS += -bios default
-QEMUOPTS += -bios $(SBI-QEMU)
+QEMUOPTS += -bios default
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 

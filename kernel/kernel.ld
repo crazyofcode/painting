@@ -4,14 +4,15 @@ ENTRY(_entry)
 SECTIONS
 
 {
-  /* rust-sbi 在 M-mode 下初始化相关的寄存器后进入 kernel 的地址是 0x80200000 */
   . = 0x80200000;
 
   .text : {
     *(.text .text.*)
     . = ALIGN(0x1000);
-    *(trampvec);
+    _trampoline = .;
+    *(trampsec)
     . = ALIGN(0x1000);
+    ASSERT(. - _trampoline == 0x1000, "error: trampoline larger than one page");
     PROVIDE(etext = .);
   }
 

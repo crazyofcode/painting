@@ -1,7 +1,5 @@
-#ifndef __STRING_H__
-#define __STRING_H__
+#ifndef STRING_H__
 
-void *        memset(void *, int, uint32);
-void *        memmove(void *, const void *, uint32);
-
-#endif // !__STRING_H__
+void    *memset(void *, int, uint32_t);
+void    *memmove(void *, const void *, uint32_t);
+#endif //!STRING_H__

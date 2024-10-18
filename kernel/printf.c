@@ -1,11 +1,23 @@
-#include <types.h>
-#include <param.h>
-#include <spinlock.h>
-#include <rustsbi.h>
 #include <stdarg.h>
-#include <defs.h>
+#include <types.h>
+#include <spinlock.h>
+#include <macro.h>
+#include <stdio.h>
+#include <sbi.h>
 
 #define MAXLEN  64
+
+int putc(int ch) {
+  return sbi_console_putchar(ch);
+}
+
+int puts(char *string) {
+  int cnt;
+  for (cnt = 0; string[cnt] != '\0'; cnt++) {
+    sbi_console_putchar(string[cnt]);
+  }
+  return cnt;
+}
 
 static char digital[] = "0123456789abcdef";
 static char NumToChar[MAXLEN];
@@ -27,7 +39,7 @@ static void
 printint(int xx, int base, int sign, int width)
 {
   int neg = 0;
-  uint32 num;
+  uint32_t num;
 
   if (sign && xx < 0) {
     neg = 1;
@@ -59,13 +71,13 @@ printint(int xx, int base, int sign, int width)
 }
 
 static void
-printptr(uint64 x)
+printptr(uint64_t x)
 {
   int i;
   sbi_console_putchar('0');
   sbi_console_putchar('x');
-  for (i = 0; i < (sizeof(uint64) * 2); i++, x <<= 4)
-    sbi_console_putchar(digital[x >> (sizeof(uint64) * 8 - 4)]);
+  for (i = 0; i < (sizeof(uint64_t) * 2); i++, x <<= 4)
+    sbi_console_putchar(digital[x >> (sizeof(uint64_t) * 8 - 4)]);
 }
 
 static void
@@ -112,7 +124,7 @@ vsprintf(va_list ap, const char *fmt)
         printint(va_arg(ap, int), base, 0, align_forment);
         break;
       case 'p' :
-        printptr(va_arg(ap, uint64));
+        printptr(va_arg(ap, uint64_t));
         break;
       default: sbi_console_putchar(c); panic("no matched");
     }
@@ -144,7 +156,7 @@ void
 printfinit()
 {
   initlock(&pr.lock, "pr");
-  pr.locked = LOCK;
+  pr.locked = true;
 }
 
 void
@@ -156,11 +168,4 @@ panic(const char *str) {
   pr.locked = 1;
   while (1)
     ;
-}
-
-void
-printflogo()
-{
-  // TODO()
-  // paintingOS
 }
