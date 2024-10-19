@@ -169,3 +169,13 @@ panic(const char *str) {
   while (1)
     ;
 }
+
+void _log(const char *file, int line, const char *func, const char *format, ...) {
+    printf("[%s:%d][%s] ", file, line, func);
+
+    va_list args;
+    va_start(args, format);
+    vsprintf(args, format);
+    va_end(args);
+}
+

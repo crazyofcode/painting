@@ -19,6 +19,8 @@ OBJS = \
 			 $T/string.o\
 			 $T/pm.o\
 			 $T/list.o\
+			 $T/dtb.o\
+			 $T/vm.o\
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@

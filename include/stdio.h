@@ -6,4 +6,5 @@ int     puts(char *);
 void    printf(const char *, ...);
 void    printfinit();
 void    panic(const char *) __noreturn;
+int     sprintf(char *, const char *, ...);
 #endif //!STDIO_H__

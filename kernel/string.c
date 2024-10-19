@@ -31,3 +31,25 @@ void * memmove(void *dst, const void *src, uint32_t n) {
 
   return dst;
 }
+
+size_t strlen(const char *s) {
+  size_t len = 0;
+  while(*(s + len) != '\0')
+    ++len;
+  return len;
+}
+
+int strncmp(const char *s1, const char *s2, size_t len) {
+  size_t idx = 0;
+  while (*(s1 + idx) != '\0' && *(s2 + idx) != '\0' && idx < len) {
+    if (*(s1 + idx) != *(s2 + idx))
+      return *(s1 + idx) - *(s2 + idx);
+    ++idx;
+  }
+
+  if (idx >= len)
+    return 0;
+  else if (*(s1 + len) != '\0')
+      return *(s1 + idx);
+  else return *(s2 + idx);
+}

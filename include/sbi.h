@@ -1,6 +1,5 @@
 #ifndef SBI_H__
 #define SBI_H__
-#include <types.h>
 #include <sbi_ecall_interface.h>
 
 
@@ -35,21 +34,6 @@ static struct sbiret SBI_CALL(int ext, int fid, unsigned long arg0,
 
     return ret;
 }
-
-/*
-// #define SBI_CALL_N(ext, funct, num, ...) \
-//     SBI_CALL(ext, funct, ##__VA_ARGS__, 0, 0, 0, 0, 0, 0)
-// 
-// // 定义不同参数个数的SBI调用
-// #define SBI_CALL_0(ext, funct)         SBI_CALL_N(ext, funct, 0)
-// #define SBI_CALL_1(ext, funct, arg0)   SBI_CALL_N(ext, funct, 1, arg0)
-// #define SBI_CALL_2(ext, funct, arg0, \
-//                                  arg1) SBI_CALL_N(ext, funct, 2, arg0, arg1)
-// #define SBI_CALL_3(ext, funct, arg0, arg1, arg2) SBI_CALL_N(ext, funct, 3, arg0, arg1, arg2)
-// #define SBI_CALL_4(ext, funct, arg0, arg1, arg2, arg3) SBI_CALL_N(ext, funct, 4, arg0, arg1, arg2, arg3)
-// #define SBI_CALL_5(ext, funct, arg0, arg1, arg2, arg3, arg4) SBI_CALL_N(ext, funct, 5, arg0, arg1, arg2, arg3, arg4)
-// #define SBI_CALL_6(ext, funct, arg0, arg1, arg2, arg3, arg4, arg5) SBI_CALL_N(ext, funct, 6, arg0, arg1, arg2, arg3, arg4, arg5)
-// */
 
 static struct sbiret SBI_CALL_0(unsigned long ext, unsigned long funct) {
   return SBI_CALL(ext, funct, 0, 0, 0, 0, 0, 0);
@@ -89,6 +73,10 @@ static inline struct sbiret get_spec_version() {
 
 static inline struct sbiret sbi_get_impl_id(void) {
   return SBI_CALL_0(SBI_EXT_BASE, SBI_EXT_BASE_GET_IMP_ID);
+}
+
+static inline void sbi_shutdown(void) {
+  SBI_CALL_0(SBI_EXT_0_1_SHUTDOWN, SBI_SRST_RESET_TYPE_SHUTDOWN);
 }
 
 static inline long sbi_console_putchar(int ch) {

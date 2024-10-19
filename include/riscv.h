@@ -1,6 +1,5 @@
 #ifndef RISCV_H__
 #define RISCV_H__
-#include <types.h>
 
 #define     SSTATUS_SIE       (1L << 1)
 
@@ -17,6 +16,10 @@ static inline uint64_t r_satp() {
 	uint64_t x;
 	asm volatile("csrr %0, satp" : "=r"(x));
 	return x;
+}
+
+static inline void w_satp(uint64_t x) {
+	asm volatile("csrw satp, %0" : : "r"(x));
 }
 
 // Supervisor Interrupt Enable
@@ -63,5 +66,19 @@ static inline void intr_on() {
 // enable interrupt
 static inline void intr_off() {
   w_sstatus(r_sstatus() & ~SSTATUS_SIE);
+}
+
+#define PTE_V (1L << 0) // valid
+#define PTE_R (1L << 1)
+#define PTE_W (1L << 2)
+#define PTE_X (1L << 3)
+#define PTE_U (1L << 4) // user can access
+
+// flush the TLB.
+static inline void
+sfence_vma()
+{
+  // the zero, zero means flush all TLB entries.
+  asm volatile("sfence.vma zero, zero");
 }
 #endif  //!RISCV_H__

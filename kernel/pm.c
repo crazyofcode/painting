@@ -34,8 +34,12 @@ void
 freerange(void *pa_start, void *pa_end) {
   char *p;
   p = (char*)PGROUNDUP((uint64_t)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+  // uint64_t pg_num = 0;
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) {
     kpmfree(p);
+    // ++pg_num;
+    // log("pg_num: %d\n", pg_num);
+  }
 }
 
 // Free the page of physical memory pointed at by pa,

@@ -48,4 +48,10 @@
   extern void panic(const char *) __noreturn; \
   if (condition) {} \
   else { panic("assertion fail\n"); }
+
+#define log(...)                                                                            \
+	do {                                                                                       \
+    extern void _log(const char *file, int line, const char *func, const char *format, ...);  \
+		_log(__FILE__, __LINE__, __func__, __VA_ARGS__);                           \
+	} while (0)
 #endif //!MACRO_H__
