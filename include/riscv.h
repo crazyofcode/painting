@@ -22,10 +22,47 @@ static inline void w_satp(uint64_t x) {
 	asm volatile("csrw satp, %0" : : "r"(x));
 }
 
+static inline uint64_t r_scause() {
+	uint64_t x;
+	asm volatile("csrr %0, scause" : "=r"(x));
+	return x;
+}
+
+static inline uint64_t r_stval() {
+	uint64_t x;
+	asm volatile("csrr %0, stval" : "=r"(x));
+	return x;
+}
+
+static inline void  w_stval(uint64_t x) {
+  asm volatile("csrw stval, %0" : : "r"(x));
+}
+
+static inline uint64_t r_sepc() {
+	uint64_t x;
+	asm volatile("csrr %0, sepc" : "=r"(x));
+	return x;
+}
+
+static inline void  w_sepc(uint64_t x) {
+  asm volatile("csrw sepc, %0" : : "r"(x));
+}
+// sstatus register
 // Supervisor Interrupt Enable
 #define SIE_SEIE (1L << 9) // external
 #define SIE_STIE (1L << 5) // timer
 #define SIE_SSIE (1L << 1) // software
+#define SIE_SPIE (1L << 4)
+
+static inline uint64_t r_sstatus() {
+  uint64_t x;
+  asm volatile("csrr %0, sstatus" : "=r" (x) );
+  return x;
+}
+
+static inline void w_sstatus(uint64_t x) {
+  asm volatile("csrw sstatus, %0" : : "r" (x) );
+}
 
 /*static inline void */
 /*w_sie(uint64_t x)*/
@@ -40,16 +77,6 @@ static inline void w_satp(uint64_t x) {
 /*  asm volatile("csrr %0, sie" : "=r" (x) );*/
 /*  return x;*/
 /*}*/
-
-static inline uint64_t r_sstatus() {
-  uint64_t x;
-  asm volatile("csrr %0, sstatus" : "=r" (x) );
-  return x;
-}
-
-static inline void w_sstatus(uint64_t x) {
-  asm volatile("csrw sstatus, %0" : : "r" (x) );
-}
 
 
 static inline int intr_get() {

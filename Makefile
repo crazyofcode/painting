@@ -21,6 +21,8 @@ OBJS = \
 			 $T/list.o\
 			 $T/dtb.o\
 			 $T/vm.o\
+			 $T/trap.o\
+			 $T/kernelvec.o\
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@

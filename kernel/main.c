@@ -27,6 +27,8 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     kpminit();
     kvminit();
     kvminithart();
+    trapinit();
+    trapinithart();
     __sync_synchronize();
     started = 1;
     for (int i = 0; i < NCPU; i++) {
@@ -39,7 +41,7 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     __sync_synchronize();
     printf("hart %d starting\n", hartid);
     kvminithart();    // turn on paging
-    // trapinithart();   // install kernel trap vector
+    trapinithart();   // install kernel trap vector
     // plicinithart();   // ask PLIC for device interrupts
   }
 
