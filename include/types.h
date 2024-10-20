@@ -39,4 +39,5 @@ typedef unsigned long		virtual_size_t;
 typedef unsigned long		physical_addr_t;
 typedef unsigned long		physical_size_t;
 
+typedef uint64_t    pte_t;
 #endif //TYPES_H__

@@ -45,6 +45,8 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     // plicinithart();   // ask PLIC for device interrupts
   }
 
-  while(1)
+  int i = 0;
+  while(++i < 100000)
     ;
+  sbi_shutdown();
 }

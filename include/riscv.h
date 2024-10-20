@@ -108,4 +108,12 @@ sfence_vma()
   // the zero, zero means flush all TLB entries.
   asm volatile("sfence.vma zero, zero");
 }
+
+// PA PTE
+#define   OFFSET          (12)
+#define   IDXMASK         (0x1ff)
+#define   SHIFT(level)    (OFFSET + level * 9)
+#define   PA2PTE(pa)      (((uint64_t)pa >> 12) << 10)
+#define   PTE2PA(pte)     (pagetable_t)((pte >> 10) << 12)
+#define   IDX(level, va)  (((uint64_t)va >> (SHIFT(level))) & IDXMASK)
 #endif  //!RISCV_H__

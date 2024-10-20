@@ -61,19 +61,50 @@ void kvminit(void) {
 // A(Accessed)：处理器记录自从页表项上的这一位被清零之后，页表项的对应虚拟页面是否被访问过；
 //
 // D(Dirty)：处理器记录自从页表项上的这一位被清零之后，页表项的对应虚拟页面是否被修改过。
+pte_t *walk(pagetable_t pgtble, uint64_t va, int alloc) {
+  if (va >= MAXVA)
+    panic("walk");
+
+  pte_t *pte;
+  for (int level = 2; level > 0; level--) {
+    pte = &pgtble[IDX(level, va)];
+    if (*pte & PTE_V) {
+      pgtble = PTE2PA(*pte);
+    } else {
+      // 如果 va 对应的页表条目不存在
+      // 那么根据 alloc 的值判断是否需要分配一个新的页面
+      if (!alloc || (pgtble = (pte_t *)kpmalloc()) == 0) {
+        return 0;
+      }
+      // 分配成功将该页面映射到相应的虚拟地址
+      memset(pgtble, 0, PGSIZE);
+      *pte = PA2PTE(pgtble) | PTE_V;
+    }
+  }
+
+  return &pgtble[IDX(0, va)];
+}
+
 int mappages(pagetable_t pgtble, uint64_t va, uint64_t pa, uint64_t sz, int mode) {
-  // TODO
   if ((va & (PGSIZE-1)) != 0)
     panic("va not aligned");
   if ((sz & (PGSIZE-1)) != 0)
     panic("sz not aligned");
 
+  uint64_t a = va;
   uint64_t end = va + sz - PGSIZE;
-  log("mappages todo\n");
+  pte_t *pte;
   while(true) {
-    if (va == end)
+    pte = walk(pgtble, a, 1);
+    if (pte == 0)
+      return -1;
+    if (*pte & PTE_V) {
+      panic("mappages: remap");
+    }
+    *pte = PA2PTE(pa) | mode | PTE_V;
+    if (a == end)
       break;
-    va += PGSIZE;
+    a += PGSIZE;
     pa += PGSIZE;
   }
   return 0;

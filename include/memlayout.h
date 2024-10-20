@@ -8,7 +8,16 @@
 #define   VIRTIO0     0x10001000L
 #define   VIRTIO0_IRQ 1
 
-#define   PLIC        0x0c000000L
+#define   PLIC            0x0c000000L
+// 中断优先级
+// base = PLIC, BASE + 0X0: Reserved (interrupt source 0 does not exist)
+// base + 0x4: Interrupt source 1 priority
+// .....
+// base + 0xFFC: Interrupt source 1023 priority
+#define   PLIC_PRIORITY   (PLIC + 0x0)
+// Interrupt pending bit 0-31
+#define   OLIC_PENDING    (PLIC + 0x1000)
+
 // one beyond the highest possible virtual address.
 // MAXVA is actually one bit less than the max allowed by
 // Sv39, to avoid having to sign-extend virtual addresses
