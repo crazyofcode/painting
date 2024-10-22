@@ -36,7 +36,7 @@ pagetable_t kvmmake(void) {
   // virtio_mmio
   kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_W | PTE_R);
   // plic
-  kvmmap(kpgtbl, PLIC, PLIC, 0x4000000, PTE_R | PTE_X);
+  kvmmap(kpgtbl, PLIC, PLIC, 0x4000000, PTE_R | PTE_W);
   // kernel text
   kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64_t)etext - KERNBASE, PTE_R | PTE_X);
   // kernel data and the physical RAM

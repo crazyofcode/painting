@@ -1,4 +1,5 @@
 #ifndef MEMLAYOUT_H__
+#define MEMLAYOUT_H__
 
 #define   PGSIZE      4096
 
@@ -14,9 +15,15 @@
 // base + 0x4: Interrupt source 1 priority
 // .....
 // base + 0xFFC: Interrupt source 1023 priority
-#define   PLIC_PRIORITY   (PLIC + 0x0)
+#define   PLIC_PRIORITY           (PLIC + 0x0)
 // Interrupt pending bit 0-31
-#define   OLIC_PENDING    (PLIC + 0x1000)
+#define   PLIC_PENDING            (PLIC + 0x1000)
+// Interrupt send Enable
+// Each hart has two modes, S/M, and requires two Enable contexts.
+// the size of context is 0x80
+#define   PLIC_SENABLE(hartid)    (PLIC + 0x2080 + (hartid) * 0x100)
+#define   PLIC_STHRESHOLD(hartid) (PLIC + 0x201000 + (hartid) * 0x2000)
+#define   PLIC_SCLAIM(hartid)     (PLIC + 0x201004 + (hartid) * 0x2000)
 
 // one beyond the highest possible virtual address.
 // MAXVA is actually one bit less than the max allowed by

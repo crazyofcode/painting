@@ -89,9 +89,9 @@
        not have any interior elements.
 */
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+/*#include <stdbool.h>*/
+/*#include <stddef.h>*/
+/*#include <stdint.h>*/
 
 /* List element. */
 struct list_elem {

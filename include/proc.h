@@ -80,6 +80,7 @@ struct proc {
   /*struct file_entry*  ofile;*/
   struct trapframe*   trapframe;
   /*struct inode *      cwd;*/
+  struct list_elem    elem;
 };
 
 // Structures used to describe cpu information, recording information about

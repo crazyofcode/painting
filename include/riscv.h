@@ -64,19 +64,19 @@ static inline void w_sstatus(uint64_t x) {
   asm volatile("csrw sstatus, %0" : : "r" (x) );
 }
 
-/*static inline void */
-/*w_sie(uint64_t x)*/
-/*{*/
-/*  asm volatile("csrw sie, %0" : : "r" (x));*/
-/*}*/
+static inline void 
+w_sie(uint64_t x)
+{
+  asm volatile("csrw sie, %0" : : "r" (x));
+}
 
-/*static inline uint64*/
-/*r_sie()*/
-/*{*/
-/*  uint64_t x;*/
-/*  asm volatile("csrr %0, sie" : "=r" (x) );*/
-/*  return x;*/
-/*}*/
+static inline uint64_t
+r_sie()
+{
+  uint64_t x;
+  asm volatile("csrr %0, sie" : "=r" (x) );
+  return x;
+}
 
 
 static inline int intr_get() {

@@ -23,6 +23,8 @@ OBJS = \
 			 $T/vm.o\
 			 $T/trap.o\
 			 $T/kernelvec.o\
+			 $T/plic.o\
+			 $T/virt.o\
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@
