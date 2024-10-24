@@ -4,11 +4,14 @@
 
 enum process_state {
   ZIMBIE,
+  INITIAL,
   RUNNABLE,
   BLOCK,
   RUNNING,
   SLEEPING
 };
+
+enum process_priority { FIRST, SECOND, THIRD };
 
 // 上下文切换时, 只需要保存 callee 寄存器
 // 在 riscv 的调用约定规定除了 callee 之外的寄存器的值允许被破坏
@@ -75,12 +78,20 @@ struct trapframe {
 struct proc {
   struct spinlock     lock;
   enum  process_state status;
-  u32                 pid;
+  pid_t               pid;
   uint64_t            kstack;
   /*struct file_entry*  ofile;*/
-  struct trapframe*   trapframe;
+  struct trapframe    trapframe;
   /*struct inode *      cwd;*/
   struct list_elem    elem;
+  int                 priority;
+  struct proc *       parent;
+  uint64_t            vruntime;
+  pagetable_t         pagetable;
+  struct context      context;
+
+  // debug
+  char                name[MAXLEN];
 };
 
 // Structures used to describe cpu information, recording information about

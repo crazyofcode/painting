@@ -40,4 +40,9 @@ typedef unsigned long		physical_addr_t;
 typedef unsigned long		physical_size_t;
 
 typedef uint64_t    pte_t;
+typedef uint64_t *pagetable_t;
+typedef int32_t   pid_t;
+typedef unsigned char bool;
+
+#define NULL    ((void *)0)
 #endif //TYPES_H__

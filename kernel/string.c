@@ -32,6 +32,10 @@ void * memmove(void *dst, const void *src, uint32_t n) {
   return dst;
 }
 
+void *memcpy(void *dst, const void *src, uint32_t n) {
+  return memmove(dst, src, n);
+}
+
 size_t strlen(const char *s) {
   size_t len = 0;
   while(*(s + len) != '\0')
@@ -52,4 +56,16 @@ int strncmp(const char *s1, const char *s2, size_t len) {
   else if (*(s1 + len) != '\0')
       return *(s1 + idx);
   else return *(s2 + idx);
+}
+
+size_t strncpy(char *dst, const char *src, size_t n) {
+  if(n <= 0)
+    return 0;
+  size_t idx = 0;
+  size_t sn = n;
+  while(--n > 0 && (*(dst + idx) = *(src + idx)) != 0) {
+    ++idx;
+  }
+  *(dst + idx) = 0;
+  return sn - n;;
 }

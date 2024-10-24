@@ -1,6 +1,7 @@
 #ifndef VM_H__
 #define VM_H__
-typedef uint64_t *pagetable_t;
+
+extern pagetable_t kernel_pagetable;
 
 void      kvminit(void);
 int       mappages(pagetable_t, uint64_t, uint64_t, uint64_t, int);

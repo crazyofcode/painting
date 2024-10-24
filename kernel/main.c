@@ -12,6 +12,7 @@
 #include <trap.h>
 #include <plic.h>
 #include <virt.h>
+#include <defs.h>
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
@@ -34,6 +35,7 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     plicinit();
     plicinithart(hartid);
     virtio_disk_init();
+    process_init();
     __sync_synchronize();
     started = 1;
     for (int i = 0; i < NCPU; i++) {

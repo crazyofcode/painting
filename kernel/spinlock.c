@@ -1,8 +1,10 @@
 #include <types.h>
+#include <param.h>
 #include <riscv.h>
-#include <spinlock.h>
 #include <macro.h>
+#include <spinlock.h>
 #include <stdio.h>
+#include <list.h>
 #include <proc.h>
 #include <defs.h>
 
