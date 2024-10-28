@@ -20,12 +20,14 @@ typedef long			s64;
 typedef unsigned long		u64;
 typedef long			int64_t;
 typedef unsigned long		uint64_t;
+typedef unsigned long		size_t;
 #define PRILX			"016lx"
 #elif __riscv_xlen == 32
 typedef long long		s64;
 typedef unsigned long long	u64;
 typedef long long		int64_t;
 typedef unsigned long long	uint64_t;
+typedef unsigned int   size_t;
 #define PRILX			"08lx"
 #else
 #error "Unexpected __riscv_xlen"
@@ -44,5 +46,7 @@ typedef uint64_t *pagetable_t;
 typedef int32_t   pid_t;
 typedef unsigned char bool;
 
+#define TRUE    ((char)1)
+#define FALSE   ((char)1)
 #define NULL    ((void *)0)
 #endif //TYPES_H__

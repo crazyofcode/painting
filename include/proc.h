@@ -89,6 +89,7 @@ struct proc {
   uint64_t            vruntime;
   pagetable_t         pagetable;
   struct context      context;
+  struct sleeplock *  chan;
 
   // debug
   char                name[MAXLEN];
@@ -99,7 +100,7 @@ struct proc {
 // and interrupt status and number of nested levels.
 struct cpu {
   struct proc *proc;
-  struct context *context;
+  struct context context;
 
   int noff;   // depth of push_off
   int intena; // interrupt enable status

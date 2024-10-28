@@ -53,3 +53,8 @@ void kerneltrap(void) {
   w_sepc(sepc);
   w_sstatus(sstatus);
 }
+
+void usertrapret(void) {
+  panic("TODO");
+  return;
+}

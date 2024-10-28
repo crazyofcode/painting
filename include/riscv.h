@@ -116,4 +116,5 @@ sfence_vma()
 #define   PA2PTE(pa)      (((uint64_t)pa >> 12) << 10)
 #define   PTE2PA(pte)     (pagetable_t)((pte >> 10) << 12)
 #define   IDX(level, va)  (((uint64_t)va >> (SHIFT(level))) & IDXMASK)
+#define   PTE_FLAGS(pte)  ((pte) & 0x3FF)
 #endif  //!RISCV_H__

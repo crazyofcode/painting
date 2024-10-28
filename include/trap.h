@@ -3,5 +3,6 @@
 
 void    trapinit(void);
 void    trapinithart(void);
+void    usertrapret(void);
 
 #endif //!TRAP_H__

@@ -11,8 +11,11 @@
 #include <dtb.h>
 #include <trap.h>
 #include <plic.h>
+#include <spinlock.h>
 #include <virt.h>
+#include <sleeplock.h>
 #include <defs.h>
+#include <schedule.h>
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
@@ -43,19 +46,20 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
         sbi_hart_start(i, KERNBASE, 0);
     }
 
+    while(started != 4)
+      ;
+    // init the first user process
+    // sh.c
+    init_first_proc();
   } else {
     while(started == 0)
       ;
-    ++started;
-    __sync_synchronize();
-    printf("hart %d starting\n", hartid);
     kvminithart();    // turn on paging
     trapinithart();   // install kernel trap vector
     plicinithart(hartid);   // ask PLIC for device interrupts
+    ++started;
+    __sync_synchronize();
   }
-
-  while(started != 4)
-    ;
-  sbi_console_putchar(started + 48);
-  sbi_shutdown();
+  // never returns
+  schedule();
 }

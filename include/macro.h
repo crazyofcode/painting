@@ -4,8 +4,6 @@
 #define true			1
 #define false			0
 
-#define NULL			((void *)0)
-
 #define UNUSED __attribute__((unused))
 #define __packed		__attribute__((packed))
 #define __noreturn		__attribute__((noreturn))

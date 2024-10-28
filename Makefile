@@ -25,6 +25,9 @@ OBJS = \
 			 $T/kernelvec.o\
 			 $T/plic.o\
 			 $T/virt.o\
+			 $T/swtch.o\
+			 $T/schedule.o\
+			 $T/file.o\
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@
