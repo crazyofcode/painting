@@ -1,12 +1,10 @@
 K = kernel
 U = user
-T = build
 CPUS := 4
 
+-include ./scripts/config.mk
+
 $(shell mkdir -p $(T))
-
-include ./scripts/config.mk
-
 
 OBJS = \
 			 $T/entry.o\
@@ -27,7 +25,8 @@ OBJS = \
 			 $T/virt.o\
 			 $T/swtch.o\
 			 $T/schedule.o\
-			 $T/file.o\
+
+-include ./scripts/fs.mk
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@
@@ -35,7 +34,7 @@ $T/%.o: $K/%.S
 $T/%.o: $K/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$T/kernel: $(OBJS) $K/kernel.ld # $U/initcode
+$T/kernel: $(OBJS) $K/kernel.ld $T/$(FS_OBJ) # $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $T/kernel $(OBJS)
 	$(OBJDUMP) -S $T/kernel > $T/kernel.asm
 	$(OBJDUMP) -t $T/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $T/kernel.sym

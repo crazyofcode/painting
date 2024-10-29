@@ -10,7 +10,6 @@
 struct spinlock cons;
 void console_init(void) {
   initlock(&cons, "cons");
-  printf("console init!\n");
 }
 
 void console_putc(int ch) {

@@ -1,12 +1,10 @@
+T = build
 
 TOOLPREFIX = riscv64-linux-gnu-
 QEMU = qemu-system-riscv64
 
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
-
-
-LIB_PATH := ./include
 
 QEMUOPTS = -machine virt -cpu rv64 -kernel $T/kernel -m 512M -smp $(CPUS) -nographic
 QEMUOPTS += -bios default
@@ -23,8 +21,8 @@ CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I$(LIB_PATH)
-CFLAGS += -D__ISA_RISCV64__
+CFLAGS += -I./include -I./include/fs
+CFLAGS += -D__ISA_RISCV64__ -DFSTYPE_FAT32
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 LDFLAGS = -z max-page-size=4096

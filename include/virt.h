@@ -44,8 +44,12 @@ struct disk {
   struct spinlock vdisk_lock;
   
 } ;
+
+#define     WIRTE   1
+#define     READ    0
 // the address of virtio mmio register r.
 #define R(r) ((volatile uint32_t *)(VIRTIO0 + (r)))
 void  virtio_disk_init(void);
+void  virtio_disk_rw(struct buf *, int);
 
 #endif //!VIRT_H__

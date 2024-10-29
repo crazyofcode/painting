@@ -12,7 +12,6 @@
 #include <trap.h>
 #include <macro.h>
 #include <stdio.h>
-#include <file.h>
 
 extern char trampoline[];
 void swtch(struct context *, struct context *);

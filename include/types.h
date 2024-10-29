@@ -45,6 +45,10 @@ typedef uint64_t    pte_t;
 typedef uint64_t *pagetable_t;
 typedef int32_t   pid_t;
 typedef unsigned char bool;
+typedef uint16_t  wchar;
+
+typedef uint32_t mode_t;
+typedef int64_t off_t;
 
 #define TRUE    ((char)1)
 #define FALSE   ((char)1)
