@@ -296,6 +296,13 @@ struct proghdr {
 #define ELF_PROG_FLAG_WRITE     2
 #define ELF_PROG_FLAG_READ      4
 
+int open(const char *file, int flags) {
+  return 0;
+}
+int read(int fd, void *buf, size_t sz) {
+  return 0;
+}
+#define RD_ONLY 1
 uintptr_t loader(const char *file) {
   int fd = open(file, RD_ONLY);
   // 如果打开文件失败就直接返回

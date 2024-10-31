@@ -3,6 +3,15 @@
 
 #define FAT32_isEOF(x) (x >= 0x0ffffff8UL && x <= 0x0fffffffUL)
 #define FAT32_EOF 0x0fffffffUL
+#define BIT_OFF   0x000000ffU
+
+#define ATTR_READ_ONLY  0x01
+#define ATTR_HIDDEN     0x02
+#define ATTR_SYSTEM     0x04
+#define ATTR_VOLUME_ID  0x08
+#define ATTR_DIRECTORY  0x10
+#define ATTR_ARCHIVE    0x20
+
 // bpb(BIOS Parameter Block)
 struct fat32hder {
   uint8_t   jmp_Boot[3];
@@ -19,7 +28,7 @@ struct fat32hder {
   uint16_t  number_header;
   uint32_t  number_hidden_sector;
   uint32_t  large_sector_count;
-  uint32_t  sectors_per_fat;
+  uint32_t  fat_size;
   uint16_t  flags;
   uint16_t  fat_version_number;
   uint32_t  cluster_root_directory;   // often set to 2
@@ -36,15 +45,15 @@ struct fat32hder {
   uint16_t  bootable_partition;     // must be oxaa55
 } __packed;
 
-struct FSInfo {
-  uint32_t    lead_signature;   // must be ox41615252
-  uint8_t     reserved[480];
-  uint32_t    another_signature;  // must be ox61417272
-  uint32_t    last_known_free_cluster;
-  uint32_t    hint;
-  uint8_t     reserved1[12];
-  uint32_t    trail_signature;
-} __packed;
+/*struct FSInfo {*/
+  /*uint32_t    lead_signature;   // must be ox41615252*/
+  /*uint8_t     reserved[480];*/
+  /*uint32_t    another_signature;  // must be ox61417272*/
+  /*uint32_t    last_known_free_cluster;*/
+  /*uint32_t    next_free;*/
+  /*uint8_t     reserved1[12];*/
+  /*uint32_t    trail_signature;*/
+/*} ;*/
 
 struct FAT32Directory {
   uint8_t   dir_name;
@@ -71,5 +80,28 @@ struct FAT32LongDirectory {
   uint16_t  LDIR_FstClusLO;
   wchar     LDIR_Name3[2];
 } __packed;
+
+struct SubSuperBlockInfo {
+  uint32_t  first_data_sector;
+  uint32_t  data_sector_cnt;
+  uint32_t  cluster_cnt;
+  uint32_t  bytes_per_clus;
+};
+
+#define fat32_entry_size  4
+#define FATSecNum(header, clusterNo)  \
+            (header->reserved_sectors + \
+              (clusterNo * fat32_entry_size) / header->bytes_per_sector)
+#define SectorNum(header, clusterNo, fatno)   \
+          (FATSecNum(header, clusterNo) + fatno * header->fat_size)
+#define REM(x, y)   ((x) % (y))
+#define FATEntOffset(header, clusterNo) \
+          REM(clusterNo * fat32_entry_size, header->bytes_per_sector)
+#define MASK(num)   (~(num) & (num + 1))
+#define find_lowest_zero_bit(num) __builtin_ctz(MASK(num))
+#define first_sector_clus(fs, cluster) \
+          fs->sbinfo.first_data_sector + \
+          (cluster - fs->superblock.cluster_root_directory) * \
+          fs->superblock.sectors_per_cluster
 
 #endif // !FAT32_H__

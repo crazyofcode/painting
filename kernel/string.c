@@ -67,5 +67,5 @@ size_t strncpy(char *dst, const char *src, size_t n) {
     ++idx;
   }
   *(dst + idx) = 0;
-  return sn - n;;
+  return sn - n;
 }

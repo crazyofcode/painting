@@ -47,6 +47,10 @@
   if (condition) {} \
   else { panic("assertion fail\n"); }
 
+#define ASSERT(condition, ...) \
+  if (condition) {}             \
+  else { log(__VA_ARGS__); }
+
 #define log(...)                                                                            \
 	do {                                                                                       \
     extern void _log(const char *file, int line, const char *func, const char *format, ...);  \
