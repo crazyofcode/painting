@@ -45,7 +45,7 @@ struct disk {
   
 } ;
 
-#define     WIRTE   1
+#define     WRITE   1
 #define     READ    0
 // the address of virtio mmio register r.
 #define R(r) ((volatile uint32_t *)(VIRTIO0 + (r)))

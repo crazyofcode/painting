@@ -4,9 +4,9 @@
 #include <spinlock.h>
 #include <sleeplock.h>
 #include <stdio.h>
-#include <buf.h>
-#include <virtio.h>
 #include <list.h>
+#include <buf.h>
+#include <virt.h>
 
 bcache_t    bcache;
 struct list bcache_list;
@@ -71,7 +71,7 @@ struct buf *bread(uint32_t dev, uint32_t blockno) {
 }
 
 void bwrite(struct buf *b) {
-  if (!holdingsleeplock(&b0>lock))
+  if (!holdingsleeplock(&b->lock))
     panic("bwrite");
   virtio_disk_rw(b, WRITE);
 }
@@ -87,7 +87,7 @@ void brelse(struct buf *b) {
   acquire(&bcache.lock);
   --b->refcnt;
   if (b->refcnt == 0) {
-    struct list_elem *e = list_remove(&b->elem);
+    list_remove(&b->elem);
     list_push_front(&bcache_list, &b->elem);
   }
 

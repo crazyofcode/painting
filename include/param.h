@@ -15,4 +15,6 @@
 #define NBUF (MAXOPBLOCKS * 3)           // size of disk block cache
 
 #define ERR       0xffffffff
+
+#define PGMASK    ((1UL << 12) - 1)
 #endif //!PARAM_H__

@@ -2,9 +2,10 @@ K = kernel
 U = user
 CPUS := 4
 
--include ./scripts/config.mk
 
+-include ./scripts/config.mk
 $(shell mkdir -p $(T))
+-include ./scripts/fs.mk
 
 OBJS = \
 			 $T/entry.o\
@@ -25,8 +26,6 @@ OBJS = \
 			 $T/virt.o\
 			 $T/swtch.o\
 			 $T/schedule.o\
-
--include ./scripts/fs.mk
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@

@@ -12,6 +12,8 @@
 #include <trap.h>
 #include <macro.h>
 #include <stdio.h>
+#include <fs.h>
+#include <buddy.h>
 
 extern char trampoline[];
 void swtch(struct context *, struct context *);
@@ -21,6 +23,44 @@ unsigned char pid_bitmap[MAX_PID / 8]; // 位图，每个字节包含8个位
 static struct spinlock process_lock;
 static struct list process_list;
 static struct spinlock  pid_lock;
+
+static int _flag2perm(int flag) {
+  int perm = 0;
+  if (flag & 0x1) perm |= PTE_X;
+  if (flag & 0x2) perm |= PTE_W;
+  return perm;
+}
+
+static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_t bytes_read, size_t bytes_zero, int flag) {
+  ASSERT(((bytes_zero + bytes_read) & PGSIZE) == 0);
+  ASSERT((va & PGMASK) == 0);
+  ASSERT(off % PGSIZE == 0);
+
+  file_seek(fd, off, SEEK_SET);
+  while( bytes_read > 0 || bytes_zero > 0 ) {
+    size_t page_read_bytes = bytes_read < PGSIZE ? bytes_read : PGSIZE;
+    size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+    void *pa = kpmalloc();
+    if (mappages(pagetable, va, (uint64_t)pa, PGSIZE, flag | PTE_R | PTE_U) < 0) {
+      kpmfree(pa);
+      return false;
+    }
+
+    if (file_read(fd, (uint64_t)pa, page_read_bytes) != page_read_bytes) {
+      kpmfree(pa);
+      return false;
+    }
+
+    memset(pa + page_read_bytes, 0, page_zero_bytes);
+
+    bytes_read -= page_read_bytes;
+    bytes_zero -= page_zero_bytes;
+    va += PGSIZE;
+  }
+
+  return true;
+}
 
 struct cpu *cur_cpu(void) {
   uint64_t hartid = r_tp();
@@ -116,7 +156,7 @@ pid_t pid_alloc(void) {
 struct proc *process_create(void) {
   // create a process
   // first alloc a page for save the information of process
-  struct proc *p = (struct proc *)kpmalloc();
+  struct proc *p = (struct proc *)kalloc(sizeof(struct proc));
   if (p == NULL) {
     return NULL;
   }
@@ -192,9 +232,7 @@ pid_t fork(void) {
 }
 
 void init_first_proc(void) {
-  uint64_t entry = loader("/sh");
-  struct proc *p = process_create();
-  p->context.ra = entry;
+  process_execute("/sh");
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -289,29 +327,27 @@ struct proghdr {
 };
 
 // Values for Proghdr type
-#define ELF_PROG_LOAD           1
+#define PT_LOAD           1
 
 // Flag bits for Proghdr flags
 #define ELF_PROG_FLAG_EXEC      1
 #define ELF_PROG_FLAG_WRITE     2
 #define ELF_PROG_FLAG_READ      4
 
-int open(const char *file, int flags) {
-  return 0;
-}
-int read(int fd, void *buf, size_t sz) {
-  return 0;
-}
-#define RD_ONLY 1
-uintptr_t loader(const char *file) {
-  int fd = open(file, RD_ONLY);
+bool loader(const char *file) {
+  bool success = false;
+  uint64_t  sz = 0;
+  size_t bytes_zero;
+  int fd = file_open(file, 0);
   // 如果打开文件失败就直接返回
   // 通过返回值表示程序是否加载成功
-  if (fd < 0) return 0;
+  if (fd < 0)
+    return false;
 
+  struct proc *p = cur_proc();
   // 然后读取程序头部信息
   struct elfhdr ehdr;
-  ASSERT(read(fd, &ehdr, sizeof(struct elfhdr)) == sizeof(struct elfhdr));
+  ASSERT(file_read(fd, (uint64_t)&ehdr, sizeof(struct elfhdr)) == sizeof(struct elfhdr));
 
   #if defined(__ISA_AM_NATIVE__)
   # define EXPECT_TYPE EM_X86_64
@@ -328,6 +364,39 @@ uintptr_t loader(const char *file) {
   ASSERT(ehdr.magic == ELF_MAGIC);
   ASSERT(ehdr.machine == EXPECT_TYPE);
 
-  // seek(fd, ehdr.phoff, )
-  return 0;
+  struct proghdr phdr[ehdr.phnum];
+  file_seek(fd, ehdr.phoff, SEEK_SET);
+  size_t bytes_read = file_read(fd, (uint64_t)phdr, sizeof (struct proghdr) * ehdr.phnum);
+  ASSERT(bytes_read == sizeof(struct proghdr) * ehdr.phnum);
+
+  for (int i = 0; i < ehdr.phnum; i++) {
+    if(phdr[i].type != PT_LOAD)
+      continue;
+    if(phdr[i].memsz < phdr[i].filesz)
+      goto done;
+    if(phdr[i].vaddr + phdr[i].memsz < phdr[i].vaddr)
+      goto done;
+
+    size_t page_offset = phdr[i].vaddr & PGMASK;
+    uint64_t  file_page = phdr[i].off & ~PGMASK;
+    uint64_t  mem_page  = phdr[i].vaddr & ~PGMASK;
+    if (phdr[i].filesz > 0) {
+      bytes_read = page_offset + phdr[i].filesz;
+      bytes_zero = PGROUNDUP(page_offset + phdr[i].memsz) - bytes_read;
+    } else {
+      bytes_read = 0;
+      bytes_zero = PGROUNDUP(page_offset + phdr[i].memsz);
+    }
+
+    if (!loadseg(p->pagetable, fd, file_page, mem_page, bytes_read, bytes_zero, _flag2perm(phdr[i].flags)))
+      goto done;
+    sz = PGROUNDUP(phdr[i].vaddr + phdr[i].memsz);
+  }
+  file_close(fd);
+  p->trapframe.sp = sz;
+  p->trapframe.epc = ehdr.entry;
+  success = true;
+
+done:
+  return success;
 }

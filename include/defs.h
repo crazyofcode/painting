@@ -11,5 +11,10 @@ void            init_first_proc(void);
 int             getpid();
 void            sleep(void *, struct spinlock*);
 void            wakeup(void *);
-uintptr_t       loader(const char *);
+bool            loader(const char *);
+
+// kalloc.c
+void *          kalloc(size_t);
+void            kfree(void *);
+void *          rekalloc(void *, size_t);
 #endif //!DEFS_H__

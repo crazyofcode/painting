@@ -3,7 +3,7 @@
 
 #define FAT32_isEOF(x) (x >= 0x0ffffff8UL && x <= 0x0fffffffUL)
 #define FAT32_EOF 0x0fffffffUL
-#define BIT_OFF   0x000000ffU
+#define BIT_OFF   0x0000000fU
 
 #define ATTR_READ_ONLY  0x01
 #define ATTR_HIDDEN     0x02

@@ -90,6 +90,7 @@ struct proc {
   pagetable_t         pagetable;
   struct context      context;
   struct sleeplock *  chan;
+  struct dirent *     cwd;
 
   // debug
   char                name[MAXLEN];

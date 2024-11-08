@@ -47,7 +47,7 @@
   if (condition) {} \
   else { panic("assertion fail\n"); }
 
-#define ASSERT(condition, ...) \
+#define ASSERT_INFO(condition, ...) \
   if (condition) {}             \
   else { log(__VA_ARGS__); }
 
