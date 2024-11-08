@@ -1,5 +1,3 @@
-T = build
-
 TOOLPREFIX = riscv64-linux-gnu-
 QEMU = qemu-system-riscv64
 

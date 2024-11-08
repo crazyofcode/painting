@@ -1,11 +1,9 @@
 K = kernel
 U = user
+T = build
 CPUS := 4
 
-
--include ./scripts/config.mk
 $(shell mkdir -p $(T))
--include ./scripts/fs.mk
 
 OBJS = \
 			 $T/entry.o\
@@ -27,10 +25,12 @@ OBJS = \
 			 $T/swtch.o\
 			 $T/schedule.o\
 
+-include ./scripts/config.mk
+
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@
 
-$T/%.o: $K/%.c
+$T/%.o: $K/%.c $K/fs/.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $T/kernel: $(OBJS) $K/kernel.ld $T/$(FS_OBJ) # $U/initcode

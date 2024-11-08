@@ -5,10 +5,6 @@
 #include <macro.h>
 #include <fat32.h>
 
-extern uint32_t rootsector[8];
-extern int      rootsectornum;
-extern struct filesystem  mainFS;
-
 // init
 // fill in superblock
 int clusinit(struct filesystem *fs) {
@@ -42,11 +38,7 @@ int clusinit(struct filesystem *fs) {
   if (BSIZE != header->bytes_per_sector)
     return ERR;
   brelse(buf);
-  // b = bread(fs->deviceNumber, 1);
-  // ASSERT_INFO(*(uint32_t *)buf->data == 0x41615252, "lead signature fault");
-  // memset((void *)buf->data + 1, 0, 480);
-  // ASSERT_INFO(*((uint32_t *)buf->data + 121) == 0x61417272, "additional signature fault");
-  // 初始化 root 目录项
+
   strncpy(fs->root.name, "/", 1);
   fs->root.parent = NULL;
   fs->root.filesystem = fs;
