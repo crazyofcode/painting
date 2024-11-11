@@ -14,7 +14,8 @@ void            wakeup(void *);
 bool            loader(const char *);
 
 // kalloc.c
-void *          kalloc(size_t);
-void            kfree(void *);
-void *          rekalloc(void *, size_t);
+void            slab_init(void);
+void *          kalloc(size_t, mode_t);
+void            kfree(void *, mode_t);
+void *          rekalloc(void *, size_t, mode_t);
 #endif //!DEFS_H__

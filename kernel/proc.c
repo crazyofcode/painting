@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <fs.h>
 #include <buddy.h>
+#include <schedule.h>
 
 extern char trampoline[];
 void swtch(struct context *, struct context *);
@@ -72,6 +73,9 @@ struct proc* cur_proc(void) {
   return c->proc;
 }
 
+int getpid() {
+  return cur_proc()->pid;
+}
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void forkret(void) {
@@ -103,16 +107,14 @@ pagetable_t process_pagetable(struct proc *p) {
   // at the highest user virtual address.
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
-  if(mappages(pagetable, TRAMPOLINE, PGSIZE,
-              (uint64_t)trampoline, PTE_R | PTE_X) < 0){
+  if(mappages(pagetable, TRAMPOLINE, (uint64_t)trampoline, PGSIZE, PTE_R | PTE_X) < 0){
     uvmfree(pagetable, 0);
     return 0;
   }
 
   // map the trapframe page just below the trampoline page, for
   // trampoline.S.
-  if(mappages(pagetable, TRAPFRAME, PGSIZE,
-              (uint64_t)&(p->trapframe), PTE_R | PTE_W) < 0){
+  if(mappages(pagetable, TRAPFRAME, (uint64_t)(p->trapframe), PGSIZE, PTE_R | PTE_W) < 0){
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmfree(pagetable, 0);
     return 0;
@@ -156,8 +158,13 @@ pid_t pid_alloc(void) {
 struct proc *process_create(void) {
   // create a process
   // first alloc a page for save the information of process
-  struct proc *p = (struct proc *)kalloc(sizeof(struct proc));
+  struct proc *p = (struct proc *)kalloc(sizeof(struct proc), PROC_MODE);
   if (p == NULL) {
+    return NULL;
+  }
+  p->trapframe = (struct trapframe *)kalloc(sizeof(struct trapframe), TRAPFRAME_MODE);
+  if (p->trapframe == NULL) {
+    kfree(p, PROC_MODE);
     return NULL;
   }
 
@@ -215,7 +222,7 @@ pid_t fork(void) {
   //copy user register
   memcpy((void *)&np->trapframe, (void *)&p->trapframe, sizeof(p->trapframe));
   // set the child process return value is zero
-  np->trapframe.a0 = 0;
+  np->trapframe->a0 = 0;
 
   // copy open file descriptor
   // TODO
@@ -232,7 +239,8 @@ pid_t fork(void) {
 }
 
 void init_first_proc(void) {
-  process_execute("/sh");
+  rb_init();
+  rb_push_back(process_create());
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -393,8 +401,8 @@ bool loader(const char *file) {
     sz = PGROUNDUP(phdr[i].vaddr + phdr[i].memsz);
   }
   file_close(fd);
-  p->trapframe.sp = sz;
-  p->trapframe.epc = ehdr.entry;
+  p->trapframe->sp = sz;
+  p->trapframe->epc = ehdr.entry;
   success = true;
 
 done:

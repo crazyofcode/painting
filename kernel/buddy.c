@@ -2,6 +2,7 @@
 #include <param.h>
 #include <pm.h>
 #include <buddy.h>
+#include <macro.h>
 
 #define _get_buddy(block, level)      \
             (struct buddy *)((uint64_t)block ^ (1 << level));
@@ -34,7 +35,7 @@ static uint8_t level_of_bytes(size_t nbytes) {
 
 void buddy_init(void) {
   for (uint8_t i = 0; i < MAX_LEVEL; i++) {
-    buddy_list[i] == 0;
+    buddy_list[i] = 0;
   }
 }
 
@@ -60,17 +61,17 @@ void *buddy_alloc(size_t sz) {
 
   if (block == NULL) {
     block = (struct buddy *)kpmalloc();
-    ASSERT_INFO(block == NULL, "buddy alloc page fault\n");
+    ASSERT_INFO(block != NULL, "buddy alloc page fault\n");
   }
 
   struct buddy *buddy;
-  for (i = MAX_LEVEL - 1; i > lv; i--) {
+  for (i = MAX_LEVEL - 1; i > level; i--) {
     buddy = _get_buddy(block, i);
     buddy->next = buddy_list[i];
     buddy_list[i] = buddy;
   }
 
-  uint8_t *b = (uint8_t)block;
+  uint8_t *b = (uint8_t *)block;
   *b = level;
   return (void *)b;
 }

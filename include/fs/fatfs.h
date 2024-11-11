@@ -16,8 +16,8 @@ struct dirent {
   struct filesystem *filesystem;  // 所属的文件系统
   uint32_t  linkcnt;              // 链接数量
   struct dirent *parent;
-  struct direntlist child;
-}
+  struct list child;
+};
 
 struct filesystem {
   bool                      valid;
@@ -36,7 +36,7 @@ struct filesystem {
 void          fatinit(struct filesystem *);
 int           clusinit(struct filesystem *);
 uint32_t      fatread(struct filesystem *, uint32_t);
-uint32_t      fatwrite(struct filesystem *, uint32_t, uint32_t);
+void          fatwrite(struct filesystem *, uint32_t, uint32_t);
 uint32_t      fatalloc(struct filesystem *, uint32_t);
 void          fatfree(struct filesystem *, uint32_t, uint32_t);
 uint32_t      clusread(struct filesystem *, uint32_t, uint32_t, uint64_t, uint64_t);

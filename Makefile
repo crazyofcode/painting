@@ -24,13 +24,22 @@ OBJS = \
 			 $T/virt.o\
 			 $T/swtch.o\
 			 $T/schedule.o\
+			 $T/kalloc.o\
+			 $T/fs.o\
+			 $T/fat32.o\
+			 $T/buf.o\
+			 $T/buddy.o\
+			 $T/sleeplock.o\
 
 -include ./scripts/config.mk
 
 $T/%.o: $K/%.S
 	$(CC) $(ASFLAGS) -c $< -o $@
 
-$T/%.o: $K/%.c $K/fs/.c
+$T/%.o: $K/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$T/%.o: $K/fs/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $T/kernel: $(OBJS) $K/kernel.ld $T/$(FS_OBJ) # $U/initcode

@@ -15,10 +15,4 @@ struct file {
   struct list_elem  elem;
 };
 
-void  file_destory(const char *);
-
-struct list *   dir_open(const char *, int);
-void            dir_close(struct list *);
-void            dir_create(const char *);
-void            dir_destory(const char *);
 #endif // !VFS_H__

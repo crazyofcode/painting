@@ -9,7 +9,7 @@
 
 /*extern static struct filesysytem fs[MAX_FS_NUM];*/
 
-void fs_init(void);
+void      fs_init(void);
 int       file_open(const char *, int);
 void      file_close(int);
 int       file_create(const char *, mode_t);

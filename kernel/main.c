@@ -16,6 +16,7 @@
 #include <sleeplock.h>
 #include <defs.h>
 #include <schedule.h>
+#include <buddy.h>
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
@@ -38,7 +39,10 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     plicinit();
     plicinithart(hartid);
     virtio_disk_init();
+    buddy_init();
+    slab_init();
     process_init();
+    init_first_proc();
     __sync_synchronize();
     started = 1;
     for (int i = 0; i < NCPU; i++) {
@@ -48,9 +52,6 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
 
     while(started != 4)
       ;
-    // init the first user process
-    // sh.c
-    init_first_proc();
   } else {
     while(started == 0)
       ;

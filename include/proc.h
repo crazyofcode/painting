@@ -1,6 +1,5 @@
 #ifndef PROC_H__
 #define PROC_H__
-#include <types.h>
 
 enum process_state {
   ZIMBIE,
@@ -81,7 +80,7 @@ struct proc {
   pid_t               pid;
   uint64_t            kstack;
   /*struct file_entry*  ofile;*/
-  struct trapframe    trapframe;
+  struct trapframe *  trapframe;
   /*struct inode *      cwd;*/
   struct list_elem    elem;
   int                 priority;

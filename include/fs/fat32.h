@@ -90,15 +90,21 @@ struct SubSuperBlockInfo {
 
 #define fat32_entry_size  4
 #define FATSecNum(header, clusterNo)  \
-            (header->reserved_sectors + \
-              (clusterNo * fat32_entry_size) / header->bytes_per_sector)
+            (header.reserved_sectors + \
+              (clusterNo * fat32_entry_size) / header.bytes_per_sector)
 #define SectorNum(header, clusterNo, fatno)   \
-          (FATSecNum(header, clusterNo) + fatno * header->fat_size)
+          (FATSecNum(header, clusterNo) + fatno * header.fat_size)
 #define REM(x, y)   ((x) % (y))
 #define FATEntOffset(header, clusterNo) \
-          REM(clusterNo * fat32_entry_size, header->bytes_per_sector)
+          REM(clusterNo * fat32_entry_size, header.bytes_per_sector)
 #define MASK(num)   (~(num) & (num + 1))
-#define find_lowest_zero_bit(num) __builtin_ctz(MASK(num))
+#define find_lowest_zero_bit(num) ({ \
+    int pos = 0; \
+    while ((num) & (1 << pos)) { \
+        pos++; \
+    } \
+    pos; \
+})
 #define first_sector_clus(fs, cluster) \
           fs->sbinfo.first_data_sector + \
           (cluster - fs->superblock.cluster_root_directory) * \

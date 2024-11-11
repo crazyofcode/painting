@@ -1,11 +1,13 @@
 #include <types.h>
+#include <param.h>
+#include <spinlock.h>
+#include <list.h>
 #include <defs.h>
 #include <proc.h>
-#include <spinlock.h>
 #include <sleeplock.h>
 
 void initsleeplock(struct sleeplock *lk, char *name) {
-  initlock(lk->lock, name);
+  initlock(&lk->lk, name);
   lk->locked = FALSE;
   lk->name = name;
   lk->pid = -1;

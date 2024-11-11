@@ -17,4 +17,11 @@
 #define ERR       0xffffffff
 
 #define PGMASK    ((1UL << 12) - 1)
+
+// kalloc mode
+#define     PROC_MODE           (1 << 1)
+#define     TRAPFRAME_MODE      (1 << 2)
+#define     RB_MODE             (1 << 3)
+#define     DEFAULT             (1 << 4)
+
 #endif //!PARAM_H__

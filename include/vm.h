@@ -12,5 +12,4 @@ void        uvmunmap(pagetable_t, uint64_t, uint64_t, int);
 void        freewalk(pagetable_t);
 void        uvmfree(pagetable_t, uint64_t);
 
-void *      kmalloc(uint64_t) {return 0;};
 #endif //!VM_H__
