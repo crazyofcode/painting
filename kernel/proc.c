@@ -15,6 +15,7 @@
 #include <fs.h>
 #include <buddy.h>
 #include <schedule.h>
+#include <sbi.h>
 
 extern char trampoline[];
 void swtch(struct context *, struct context *);
@@ -63,6 +64,16 @@ static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_
   return true;
 }
 
+static bool setup_stack(pagetable_t pagetable, uint64_t frame, uint64_t *sp) {
+  void *pa = kpmalloc();
+  if (mappages(pagetable, frame, (uint64_t)pa, PGSIZE, PTE_R | PTE_W | PTE_U) < 0) {
+    kpmfree(pa);
+    return false;
+  }
+  *sp = frame + PGSIZE;
+  return true;
+}
+
 struct cpu *cur_cpu(void) {
   uint64_t hartid = r_tp();
   return &cpus[hartid];
@@ -79,19 +90,10 @@ int getpid() {
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void forkret(void) {
-  static int first = 1;
-
   // 在scheduler里会获取该进程的锁
-  release(&cur_proc()->lock);
+  struct proc *p = cur_proc();
+  release(&p->lock);
 
-  if (first) {
-    // init file system
-    // TODO
-    first = 0;
-
-    // ensure other cores see first=0.
-    __sync_synchronize();
-  }
   usertrapret();
 }
 
@@ -201,10 +203,55 @@ struct proc *process_create(void) {
   list_push_back(&process_list, &p->elem);
   release(&process_lock);
 
+  initlock(&p->lock, "proc");
+
   return p;
 }
 
-void process_execute(const char *_path) {
+void run_first_task(void) {
+  printf("entry run_first_task\n");
+  if (!process_execute("/sh", NULL)) {
+    log("sh exec fail, will shutdown...");
+    sbi_shutdown();
+  }
+  usertrapret();
+}
+bool process_execute(const char *_path, const char *argv[]) {
+  uint64_t ustack[MAXARG];
+  bool success;
+  struct proc *p = cur_proc();
+  strncpy(p->name, _path, strlen(_path));
+  success = loader(_path);
+  if (success) {
+    int argc;
+    uint64_t sp = p->trapframe->sp;
+    uint64_t stackbase = sp - PGSIZE;
+    for (argc = 0; argc < MAXARG; argc++) {
+      size_t len = strlen(argv[argc]) + 1;
+      sp -= len;
+      if (sp < stackbase)
+        goto bad;
+      if (copyout(p->pagetable, sp, argv[argc], len) < 0)
+        goto bad;
+      ustack[argc] = sp;
+    }
+    ustack[argc++] = 0;
+    uint64_t ptr_size = sizeof(uint64_t);
+    uint64_t align_len = (sp & 0x0f) + (0x10 - (argc*ptr_size & 0xf));
+    sp -= align_len;
+    sp -= argc * ptr_size;
+    if (sp < stackbase)
+      goto bad;
+    if (copyout(p->pagetable, sp, (char *)ustack, argc * ptr_size) < 0)
+      goto bad;
+
+    p->trapframe->a1 = sp;
+    p->trapframe->a0 = argc-1;
+    p->trapframe->sp = sp;
+    return true;
+  }
+bad:
+  return false;
 }
 
 pid_t fork(void) {
@@ -240,7 +287,9 @@ pid_t fork(void) {
 
 void init_first_proc(void) {
   rb_init();
-  rb_push_back(process_create());
+  struct proc *p = process_create();
+  p->context.ra = (uint64_t)run_first_task;
+  rb_push_back(p);
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -250,8 +299,7 @@ void init_first_proc(void) {
 // be proc->intena and proc->noff, but that would
 // break in the few places where a lock is held but
 // there's no process.
-void
-sched(void)
+void sched(void)
 {
   int intena;
   struct proc *p = cur_proc();
@@ -398,10 +446,11 @@ bool loader(const char *file) {
 
     if (!loadseg(p->pagetable, fd, file_page, mem_page, bytes_read, bytes_zero, _flag2perm(phdr[i].flags)))
       goto done;
-    sz = PGROUNDUP(phdr[i].vaddr + phdr[i].memsz);
+    sz = mem_page + bytes_read + bytes_zero;
   }
   file_close(fd);
-  p->trapframe->sp = sz;
+  if (!setup_stack(p->pagetable, sz, &p->trapframe->sp))
+    goto done;
   p->trapframe->epc = ehdr.entry;
   success = true;
 

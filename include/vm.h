@@ -12,4 +12,6 @@ void        uvmunmap(pagetable_t, uint64_t, uint64_t, int);
 void        freewalk(pagetable_t);
 void        uvmfree(pagetable_t, uint64_t);
 
+int         copyout(pagetable_t, uint64_t, const char *, uint64_t);
+int         copyin(pagetable_t, char *, uint64_t, uint64_t);
 #endif //!VM_H__

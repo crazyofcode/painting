@@ -5,8 +5,10 @@
 #include <list.h>
 #include <proc.h>
 #include <defs.h>
+#include <riscv.h>
 #include <schedule.h>
 
+static struct rbNode *leftmost;
 #define NEW_NODE(p) ({           \
         struct rbNode *node = kalloc(sizeof(struct rbNode), RB_MODE);    \
         ASSERT_INFO(node != NULL, "rbNode alloc fault");      \
@@ -233,7 +235,7 @@ static void rb_drop_node(struct rbNode *node) {
 
   if (replace_node == NIL) {
     if (node == rbRoot) {
-      node = NIL;
+      rbRoot = NIL;
     } else {
       if (double_black) {
         fixed_drop(node);
@@ -303,6 +305,7 @@ void rb_push_back(struct proc *p) {
     return;
 
   fixed_insert(node);
+  leftmost = successor(rbRoot);
 }
 
 void rb_pop_front(struct proc *p) {
@@ -316,14 +319,37 @@ void rb_init() {
   NIL->color = BLACK;
   NIL->p = NULL;
   NIL->parent = NULL;
+  leftmost = NULL;
   rbRoot = NIL;
 }
 
 void  yield() {
-  // TODO
-  return;
+  struct proc *p = cur_proc();
+  acquire(&p->lock);
+  p->status = RUNNABLE;
+  sched();
+  release(&p->lock);
 }
 
+extern void swtch(struct context *old, struct context *new);
 void schedule(void) {
-  asm volatile("wfi");
+  struct cpu *c = cur_cpu();
+  struct rbNode *node = NULL;
+  struct proc *next;
+
+  intr_on();
+  for (; ;) {
+    if (leftmost != NULL || (node = successor(rbRoot)) != NIL) {
+      next = leftmost == NULL ? node->p : leftmost->p;
+      rb_drop_node(leftmost == NULL ? node : leftmost);
+      acquire(&next->lock);
+      next->status = RUNNING;
+      c->proc = next;
+      swtch(&c->context, &next->context);
+      c->proc = 0;
+      release(&next->lock);
+    } else {
+      asm volatile("wfi");
+    }
+  }
 }

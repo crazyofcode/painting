@@ -1,6 +1,7 @@
 #ifndef PARAM_H__
 #define PARAM_H__
 
+#define MAXARG    32
 #define NCPU      4
 #define TID_ERROR 0xffffffff
 #define MAXLEN    64

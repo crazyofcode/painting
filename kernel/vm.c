@@ -186,3 +186,11 @@ void uvmfree(pagetable_t pagetable, uint64_t sz) {
   // 取消 pagetable 所保存的所有条目的映射
   freewalk(pagetable);
 }
+
+int copyout(pagetable_t pagetable, uint64_t dst, const char *src, uint64_t len) {
+  panic("copyout not implement");
+}
+
+int copyin(pagetable_t pagetable, char *det, uint64_t src, uint64_t len) {
+  panic("copyin not implement");
+}

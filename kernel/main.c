@@ -42,7 +42,6 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     buddy_init();
     slab_init();
     process_init();
-    init_first_proc();
     __sync_synchronize();
     started = 1;
     for (int i = 0; i < NCPU; i++) {
@@ -52,6 +51,8 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
 
     while(started != 4)
       ;
+    __sync_synchronize();
+    init_first_proc();
   } else {
     while(started == 0)
       ;

@@ -112,8 +112,6 @@ free_page:
 }
 
 void slab_init(void) {
-  log("proc size: %d\n", PROC_SIZE);
-  log("trapframe size: %d\n", TRAPFRAME_SIZE);
   heap_list_init((void **)&proc_heap_list, 0);
   heap_list_init((void **)&trapframe_heap_list, 0);
 }

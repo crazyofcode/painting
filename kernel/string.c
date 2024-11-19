@@ -63,7 +63,7 @@ size_t strncpy(char *dst, const char *src, size_t n) {
     return 0;
   size_t idx = 0;
   size_t sn = n;
-  while(--n > 0 && (*(dst + idx) = *(src + idx)) != 0) {
+  while(n-- > 0 && (*(dst + idx) = *(src + idx)) != 0) {
     ++idx;
   }
   *(dst + idx) = 0;

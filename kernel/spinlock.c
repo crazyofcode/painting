@@ -10,7 +10,7 @@
 
 void initlock(struct spinlock *lk, char *name) {
   lk->locked = 0;
-  lk->cpu = cur_cpu();
+  lk->cpu = 0;
   lk->name = name;
 }
 
@@ -31,6 +31,7 @@ void acquire(struct spinlock *lk) {
   // references happen strictly after the lock is acquired.
   // On RISC-V, this emits a fence instruction.
   __sync_synchronize();
+  lk->cpu = cur_cpu();
 }
 
 void release(struct spinlock *lk) {
