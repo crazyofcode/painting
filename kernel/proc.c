@@ -12,10 +12,11 @@
 #include <trap.h>
 #include <macro.h>
 #include <stdio.h>
-#include <fs.h>
+#include <file.h>
 #include <buddy.h>
 #include <schedule.h>
 #include <sbi.h>
+#include <file.h>
 
 extern char trampoline[];
 void swtch(struct context *, struct context *);
@@ -210,6 +211,8 @@ struct proc *process_create(void) {
 
 void run_first_task(void) {
   printf("entry run_first_task\n");
+  release(&cur_proc()->lock);
+  filesys_init();
   if (!process_execute("/sh", NULL)) {
     log("sh exec fail, will shutdown...");
     sbi_shutdown();

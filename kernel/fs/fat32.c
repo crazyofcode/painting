@@ -9,22 +9,33 @@
 #include <buf.h>
 #include <string.h>
 #include <defs.h>
+#include <dirent.h>
+#include <pm.h>
+
+#define   FATDIR_PERM(entry) (*(char *)entry + SHORT_NAME_LEN)
+#define   cal_cluster_pos(FstClusHI, FstClusLO) ((uint32_t)FstClusHI * (1 << 16) + (uint32_t)FstClusLO)
+#define   is_long_file_name(entry)   ((entry->file_attribute & (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID))\
+                                        == (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID))
 
 static uint8_t *cluster_bit_map;
 static void cluszero(struct filesystem *, uint32_t);
+static void build_dirent_tree(struct dirent *);
 // init
 // fill in superblock
-int clusinit(struct filesystem *fs) {
+static int clusinit(struct filesystem *fs) {
   // 从设备中读取设备信息
   struct buf *buf = bread(fs->deviceNum, 0);
   if (buf == NULL)
     return ERR;
 
   struct fat32hder *header = (struct fat32hder *)(buf->data);
-  memcpy(&fs->superblock, header, sizeof(*header));
+  fs->superblock.bytes_per_sector = header->bytes_per_sector;
+  fs->superblock.sectors_per_cluster = header->sectors_per_cluster;
+  fs->superblock.reserved_sectors = header->reserved_sectors;
+  fs->superblock.cluster_root_directory = header->cluster_root_directory;
+  fs->superblock.fat_size = header->fat_size;
 
   ASSERT_INFO(!strncmp((const char *)(header->system_identifier_string), "FAT32", 5), "read fat32 volume error");
-  ASSERT_INFO(!strncmp((const char *)(fs->superblock.system_identifier_string), "FAT32", 5), "read fat32hdr error");
 
   // 记录 superblock 的信息
   // RootDirsectors = 0
@@ -38,7 +49,7 @@ int clusinit(struct filesystem *fs) {
                             header->sectors_per_cluster;
 
   // cluster bitmap info
-  uint32_t len = fs->sbinfo.data_sector_cnt / 8 / 32;
+  uint32_t len = fs->sbinfo.data_sector_cnt / 8;
   cluster_bit_map = kalloc(sizeof(uint8_t) * len, DEFAULT);
   memset(cluster_bit_map, 0, sizeof(uint8_t) * len);
 
@@ -46,11 +57,139 @@ int clusinit(struct filesystem *fs) {
     return ERR;
   brelse(buf);
 
-  strncpy(fs->root.name, "/", 1);
-  fs->root.parent = NULL;
-  fs->root.filesystem = fs;
-  list_init(&fs->root.child);
   return 0;
+}
+
+// 读取簇内容
+static void read_multiple_cluster(struct filesystem *fs, uint64_t clusNo, char *buf, uint32_t size) {
+    for (uint32_t offset = 0; offset < size; offset += BSIZE) {
+        clusread(fs, clusNo, offset, (uint64_t)(buf + offset), BSIZE);
+    }
+}
+
+// 判断目录项是否无效
+static int is_invalid_entry(struct FAT32Directory *entry) {
+    return (entry->dir_name[0] == 0 || entry->dir_name[0] == FATDIR_DLT ||
+            strncmp((const char *)entry->dir_name, ".          ", SHORT_NAME_LEN) == 0 ||
+            strncmp((const char *)entry->dir_name, "..         ", SHORT_NAME_LEN) == 0);
+}
+
+// 处理长文件名
+static int handle_long_file_name(char *buf, uint32_t offset, int longEntSeq) {
+    struct FAT32LongDirectory *longEnt = (struct FAT32LongDirectory *)(buf + offset);
+    int prevSeq = longEntSeq;
+    longEntSeq = FATLDIR_SEQ(*(char *)longEnt);
+
+    char *rawName = buf + 512 + longEntSeq * 13;
+    memset(rawName, 0, 13);
+    if (prevSeq == 0) rawName[13] = '\0';
+    wstr2str(rawName, (char *)longEnt + 1, 10);
+    wstr2str(rawName + 5, (char *)longEnt + 14, 12);
+    wstr2str(rawName + 11, (char *)longEnt + 28, 4);
+
+    return longEntSeq;
+}
+
+// 填写文件名
+static void fill_file_name(char *name, struct FAT32Directory *entry) {
+    if (is_long_file_name(entry)) {
+        fill_fat32_long_name(name, (char *)entry);
+    } else {
+        read_fat32_short_name(name, (char *)entry->dir_name);
+    }
+}
+
+// 创建目录项
+struct dirent *create_dirent_entry(struct dirent *parent, struct FAT32Directory *entry, uint32_t offset, struct dirent **lastDir) {
+    struct dirent *newDir = dirent_alloc();
+    ASSERT_INFO(newDir, "dirent run out!");
+
+    newDir->filesystem = parent->filesystem;
+    newDir->first_cluster = cal_cluster_pos(entry->dir_FstClusHI, entry->dir_FstClusLO);
+    newDir->size = entry->dir_FileSize;
+    newDir->mode |= ((FATDIR_PERM(entry) & ATTR_DIRECTORY) ? ATTR_DIRECTORY : ATTR_FILE);
+    newDir->parent = parent;
+    newDir->linkcnt = 1;
+    newDir->parent->offset = offset;
+
+    list_push_back(&parent->child, &newDir->elem);
+    if (newDir->mode & ATTR_DIRECTORY)
+      list_init(&newDir->child);
+
+    fill_file_name(newDir->name, entry);
+
+    log("%s\n", newDir->name);
+    return newDir;
+}
+
+// 解析簇中的目录项
+static int parse_directory_entries(struct dirent *parent, char *buf, uint32_t clusSize, struct dirent **lastDir) {
+    bool longEntSeq = false;
+
+    for (uint32_t i = 0; i < clusSize; i += DIRECTORY_SIZE) {
+        struct FAT32Directory *entry = (struct FAT32Directory *)(buf + i);
+
+        if (is_invalid_entry(entry)) {
+            longEntSeq = false;
+            continue;
+        }
+
+        if (is_long_file_name(entry)) {
+            longEntSeq = handle_long_file_name(buf, i, longEntSeq);
+            continue;
+        }
+
+        struct dirent *newDir = create_dirent_entry(parent, entry, i, lastDir);
+
+        if ((newDir->mode & ATTR_DIRECTORY) == ATTR_DIRECTORY) {
+            build_dirent_tree(newDir);  // 递归构建子目录
+        }
+    }
+    return 0;
+}
+
+// 构建目录树
+static void build_dirent_tree(struct dirent *dir) {
+    uint64_t clusNo = dir->first_cluster;
+    struct filesystem *fs = dir->filesystem;
+    uint32_t clusSize = fs->sbinfo.bytes_per_clus;
+    char *buf = kpmalloc();
+    struct dirent *lastDir = NULL;
+
+    while (1) {
+        read_multiple_cluster(fs, clusNo, buf, clusSize);
+        int result = parse_directory_entries(dir, buf, clusSize, &lastDir);
+
+        if (result == -1) {
+            break;  // 到达文件尾或无效簇
+        }
+
+        clusNo = fatread(fs, clusNo);  // 获取下一个簇号
+        if (FAT32_isEOF(clusNo)) {
+            break;  // 到达文件尾
+        }
+    }
+    kpmfree(buf);
+}
+
+void fat32_init(struct filesystem *fs) {
+  log("init fat32 ...\n");
+  strncpy(fs->name, "FAT32", 5);
+
+  ASSERT_INFO(clusinit(fs) == 0, "clusinit fault");
+  log("clus init finish");
+
+  fs->root = dirent_alloc();
+  fs->root->first_cluster = fs->superblock.cluster_root_directory;
+  strncpy(fs->root->name, "/", 1);
+  fs->root->filesystem = fs;
+  fs->root->mode |= ATTR_DIRECTORY;
+  fs->root->parent = NULL;
+  fs->root->linkcnt = 1;
+  fs->root->offset = 0;
+  list_init(&fs->root->child);
+
+  build_dirent_tree(fs->root);
 }
 
 uint32_t fatread(struct filesystem *fs, uint32_t clusterNo) {

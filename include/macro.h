@@ -1,9 +1,6 @@
 #ifndef MACRO_H__
 #define MACRO_H__
 
-#define true			1
-#define false			0
-
 #define UNUSED __attribute__((unused))
 #define __packed		__attribute__((packed))
 #define __noreturn		__attribute__((noreturn))

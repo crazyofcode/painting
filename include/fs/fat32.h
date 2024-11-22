@@ -1,6 +1,8 @@
 #ifndef FAT32_H__
 #define FAT32_H__
 
+#define SHORT_NAME_LEN    11
+#define DIRECTORY_SIZE    32
 #define FAT32_isEOF(x) (x >= 0x0ffffff8UL && x <= 0x0fffffffUL)
 #define FAT32_EOF 0x0fffffffUL
 #define BIT_OFF   0x0000000fU
@@ -11,6 +13,8 @@
 #define ATTR_VOLUME_ID  0x08
 #define ATTR_DIRECTORY  0x10
 #define ATTR_ARCHIVE    0x20
+#define ATTR_FILE       0x40
+#define ATTR_LINK       0x80
 
 // bpb(BIOS Parameter Block)
 struct fat32hder {
@@ -45,18 +49,16 @@ struct fat32hder {
   uint16_t  bootable_partition;     // must be oxaa55
 } __packed;
 
-/*struct FSInfo {*/
-  /*uint32_t    lead_signature;   // must be ox41615252*/
-  /*uint8_t     reserved[480];*/
-  /*uint32_t    another_signature;  // must be ox61417272*/
-  /*uint32_t    last_known_free_cluster;*/
-  /*uint32_t    next_free;*/
-  /*uint8_t     reserved1[12];*/
-  /*uint32_t    trail_signature;*/
-/*} ;*/
+struct superblock {
+  uint16_t    bytes_per_sector;
+  uint8_t     sectors_per_cluster;
+  uint16_t    reserved_sectors;
+  uint32_t    cluster_root_directory;
+  uint32_t    fat_size;
+};
 
 struct FAT32Directory {
-  uint8_t   dir_name;
+  uint8_t   dir_name[11];
   uint8_t   file_attribute;
   uint8_t   dir_NTRes;
   uint8_t   dir_CrtTimeTenth;
@@ -109,5 +111,6 @@ struct SubSuperBlockInfo {
           fs->sbinfo.first_data_sector + \
           (cluster - fs->superblock.cluster_root_directory) * \
           fs->superblock.sectors_per_cluster
+#define FATLDIR_SEQ(x) ((x & 0x3f))
 
 #endif // !FAT32_H__

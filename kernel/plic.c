@@ -1,5 +1,6 @@
 #include <types.h>
 #include <plic.h>
+#include <riscv.h>
 #include <memlayout.h>
 
 void plicinit(void) {
@@ -19,4 +20,15 @@ void plicinithart(uint64_t hartid) {
   *(uint32_t *)(PLIC_SCLAIM(hartid)) = 0;
   // 允许所有优先级的中断
   *(uint32_t *)PLIC_STHRESHOLD(hartid) = 0;
+}
+
+int plic_claim(void) {
+  int hartid = r_tp();
+  int irq = *(uint32_t *)PLIC_SCLAIM(hartid);
+  return irq;
+}
+
+void plic_complete(int irq) {
+  int hartid = r_tp();
+  *(uint32_t *)PLIC_SCLAIM(hartid) = irq;
 }

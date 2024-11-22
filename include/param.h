@@ -1,6 +1,7 @@
 #ifndef PARAM_H__
 #define PARAM_H__
 
+#define FATDIR_DLT  0x20
 #define MAXARG    32
 #define NCPU      4
 #define TID_ERROR 0xffffffff
@@ -25,4 +26,6 @@
 #define     RB_MODE             (1 << 3)
 #define     DEFAULT             (1 << 4)
 
+#define true			1
+#define false			0
 #endif //!PARAM_H__

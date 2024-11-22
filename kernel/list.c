@@ -6,6 +6,7 @@
  */
 
 #include <types.h>
+#include <param.h>
 #include <list.h>
 #include <macro.h>
 #include <stdio.h>

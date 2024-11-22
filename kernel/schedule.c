@@ -8,6 +8,7 @@
 #include <riscv.h>
 #include <schedule.h>
 
+static struct spinlock rbTree;
 static struct rbNode *leftmost;
 #define NEW_NODE(p) ({           \
         struct rbNode *node = kalloc(sizeof(struct rbNode), RB_MODE);    \
@@ -313,6 +314,7 @@ void rb_pop_front(struct proc *p) {
 }
 
 void rb_init() {
+  initlock(&rbTree, "rbTree");
   NIL = kalloc(sizeof (struct rbNode), RB_MODE);
   NIL->left = NIL;
   NIL->right = NIL;
@@ -321,6 +323,7 @@ void rb_init() {
   NIL->parent = NULL;
   leftmost = NULL;
   rbRoot = NIL;
+  log("rb_init finish\n");
 }
 
 void  yield() {
@@ -337,11 +340,13 @@ void schedule(void) {
   struct rbNode *node = NULL;
   struct proc *next;
 
-  intr_on();
   for (; ;) {
+    intr_on();
+    acquire(&rbTree);
     if (leftmost != NULL || (node = successor(rbRoot)) != NIL) {
       next = leftmost == NULL ? node->p : leftmost->p;
       rb_drop_node(leftmost == NULL ? node : leftmost);
+      release(&rbTree);
       acquire(&next->lock);
       next->status = RUNNING;
       c->proc = next;
@@ -349,7 +354,9 @@ void schedule(void) {
       c->proc = 0;
       release(&next->lock);
     } else {
-      asm volatile("wfi");
+      // asm volatile("wfi");
+      release(&rbTree);
+      continue;
     }
   }
 }

@@ -1,4 +1,5 @@
 #include <types.h>
+#include <param.h>
 #include <memlayout.h>
 #include <riscv.h>
 #include <vm.h>
@@ -8,9 +9,6 @@
 #include <string.h>
 #include <stdio.h>
 
-// use riscv's sv39 page table scheme.
-#define SATP_SV39 (8L << 60)
-#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64_t)pagetable) >> 12))
 // kernel.ld provide
 extern char trampoline[];
 extern char etext[];
@@ -188,9 +186,47 @@ void uvmfree(pagetable_t pagetable, uint64_t sz) {
 }
 
 int copyout(pagetable_t pagetable, uint64_t dst, const char *src, uint64_t len) {
-  panic("copyout not implement");
+  uint64_t n, va0, pa0;
+  pte_t *pte;
+
+  while (len > 0) {
+    va0 = PGROUNDDOWN(dst);
+    if (va0 > MAXVA)
+      return -1;
+    pte = walk(pagetable, va0, 0);
+    if (pte == NULL || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0 || (*pte & PTE_W) == 0)
+      return -1;
+    pa0 = (uint64_t)PTE2PA(*pte);
+    n = PGSIZE - (dst - va0);
+    n = n > len ? len : n;
+    memmove((void *)(pa0 + (dst - va0)), src, n);
+
+    len -= n;
+    src += n;
+    dst = va0 + PGSIZE;
+  }
+  return 0;
 }
 
-int copyin(pagetable_t pagetable, char *det, uint64_t src, uint64_t len) {
-  panic("copyin not implement");
+int copyin(pagetable_t pagetable, char *dst, uint64_t src, uint64_t len) {
+  uint64_t n, va0, pa0;
+  pte_t *pte;
+
+  while(len > 0) {
+    va0 = PGROUNDDOWN(src);
+    if (va0 > MAXVA)
+      return -1;
+    pte = walk(pagetable, va0, 0);
+    if (pte == NULL || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0)
+      return -1;
+    pa0 = (uint64_t)PTE2PA(*pte);
+    n = PGSIZE - (src - va0);
+    n = n > len ? len : n;
+    memmove(dst, (void *)(pa0 + (src - va0)), n);
+
+    len -= n;
+    dst += n;
+    src = va0 + PGSIZE;
+  }
+  return 0;
 }

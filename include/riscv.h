@@ -1,7 +1,11 @@
 #ifndef RISCV_H__
 #define RISCV_H__
 
-#define     SSTATUS_SIE       (1L << 1)
+#define SSTATUS_SPP  (1L << 8)  // Previous mode, 1=Supervisor, 0=User
+#define SSTATUS_SPIE (1L << 5) // Supervisor Previous Interrupt Enable
+#define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
+#define SSTATUS_SIE  (1L << 1)
+#define SSTATUS_UIE  (1L << 0)  // User Interrupt Enable
 
 static inline void w_tp(uint64_t x) {
   asm volatile("mv tp, %0" : : "r" (x));
@@ -28,14 +32,14 @@ static inline uint64_t r_scause() {
 	return x;
 }
 
-static inline uint64_t r_stval() {
+static inline uint64_t r_stvec() {
 	uint64_t x;
-	asm volatile("csrr %0, stval" : "=r"(x));
+	asm volatile("csrr %0, stvec" : "=r"(x));
 	return x;
 }
 
-static inline void  w_stval(uint64_t x) {
-  asm volatile("csrw stval, %0" : : "r"(x));
+static inline void  w_stvec(uint64_t x) {
+  asm volatile("csrw stvec, %0" : : "r"(x));
 }
 
 static inline uint64_t r_sepc() {
@@ -108,6 +112,10 @@ sfence_vma()
   // the zero, zero means flush all TLB entries.
   asm volatile("sfence.vma zero, zero");
 }
+
+// use riscv's sv39 page table scheme.
+#define SATP_SV39 (8L << 60)
+#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64_t)pagetable) >> 12))
 
 // PA PTE
 #define   OFFSET          (12)

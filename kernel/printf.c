@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <types.h>
+#include <param.h>
 #include <spinlock.h>
 #include <macro.h>
 #include <stdio.h>

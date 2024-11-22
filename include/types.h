@@ -50,7 +50,5 @@ typedef uint16_t  wchar;
 typedef uint32_t mode_t;
 typedef int64_t off_t;
 
-#define TRUE    ((char)1)
-#define FALSE   ((char)1)
 #define NULL    ((void *)0)
 #endif //TYPES_H__

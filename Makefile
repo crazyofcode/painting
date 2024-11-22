@@ -25,11 +25,14 @@ OBJS = \
 			 $T/swtch.o\
 			 $T/schedule.o\
 			 $T/kalloc.o\
-			 $T/fs.o\
+			 $T/file.o\
 			 $T/fat32.o\
 			 $T/buf.o\
 			 $T/buddy.o\
 			 $T/sleeplock.o\
+			 $T/timer.o\
+			 $T/dirent.o\
+			 $T/fs.o
 
 -include ./scripts/config.mk
 

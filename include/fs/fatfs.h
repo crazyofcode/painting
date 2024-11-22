@@ -2,29 +2,26 @@
 #define FATFS_H__
 #define   MAXLEN      64
 
-// 需要在创建时初始化 list
-struct direntlist {
-  struct dirent *dirent;
-  struct list_elem  elem;
-};
-
 struct dirent {
   char    name[MAXLEN];
   uint64_t  size;
   uint32_t  first_cluster;
-  enum {DIR_DIR, DIR_FILE, DIR_LINK} type;    // 目录, 文件, 链接
+  uint32_t  offset;
+  /*enum {DIR_DIR, DIR_FILE, DIR_LINK} type;    // 目录, 文件, 链接*/
   struct filesystem *filesystem;  // 所属的文件系统
   uint32_t  linkcnt;              // 链接数量
   struct dirent *parent;
   struct list child;
+  struct list_elem elem;
+  mode_t      mode;
 };
 
 struct filesystem {
   bool                      valid;
   char                      name[7];
-  struct fat32hder          superblock;
+  struct superblock         superblock;
   struct SubSuperBlockInfo  sbinfo;
-  struct dirent             root;   // 根目录
+  struct dirent *           root;   // 根目录
   struct dirent *           image;
   struct dirent *           mountPoint;
   /*struct FSInfo             fsinfo;*/
@@ -33,8 +30,9 @@ struct filesystem {
 };
 
 // fat32.c
+void          fat32_init(struct filesystem *);
 void          fatinit(struct filesystem *);
-int           clusinit(struct filesystem *);
+/*int           clusinit(struct filesystem *);*/
 uint32_t      fatread(struct filesystem *, uint32_t);
 void          fatwrite(struct filesystem *, uint32_t, uint32_t);
 uint32_t      fatalloc(struct filesystem *, uint32_t);
