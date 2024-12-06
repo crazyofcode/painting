@@ -21,6 +21,5 @@ void clock_init() {
 
 
 void clock_intr() {
-  log("clock_intr\n");
   sbi_set_timer(get_timerstamp() + INTERVAL);
 }

@@ -23,3 +23,7 @@ void console_putc(int ch) {
     sbi_console_putchar(ch);
   }
 }
+
+int console_read(int user_dst, uint64_t dst, int n);
+int console_write(int user_dst, uint64_t src, int n);
+void console_intr(int c);

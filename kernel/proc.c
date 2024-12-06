@@ -199,7 +199,10 @@ struct proc *process_create(void) {
   p->vruntime = 0;
   p->priority = FIRST;
   p->status   = INITIAL;
-  
+ 
+  p->parent = cur_proc();     // first proc should be NULL
+  list_init(&p->child_list);
+
   acquire(&process_lock);
   list_push_back(&process_list, &p->elem);
   release(&process_lock);
@@ -211,12 +214,9 @@ struct proc *process_create(void) {
 
 void run_first_task(void) {
   ASSERT(intr_get());
-  // filesys_init();
-  if (!process_execute("/sh", NULL)) {
-    log("sh exec fail, will shutdown...");
-    sbi_shutdown();
-  }
-  usertrapret();
+  filesys_init();
+  process_execute("init", NULL);
+  sbi_shutdown();
 }
 bool process_execute(const char *_path, const char *argv[]) {
   uint64_t ustack[MAXARG];
@@ -307,6 +307,7 @@ void sched(void)
 {
   int intena;
   struct proc *p = cur_proc();
+  struct cpu *c = cur_cpu();
 
   if(!holding(&p->lock))
     panic("sched p->lock");
@@ -318,7 +319,7 @@ void sched(void)
     panic("sched interruptible");
 
   intena = cur_cpu()->intena;
-  swtch(&p->context, &cur_cpu()->context);
+  swtch(&p->context, &c->context);
   cur_cpu()->intena = intena;
 }
 
@@ -347,6 +348,7 @@ void wakeup(void *chan) {
     if (p != cur && p->chan == chan) {
       p->status = RUNNABLE;
     }
+    rb_push_back(p);
     release(&p->lock);
   }
 }

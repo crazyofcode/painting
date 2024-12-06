@@ -45,6 +45,7 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     trapinithart();
     plicinit();
     plicinithart(hartid);
+    clock_init();
     buddy_init();
     slab_init();
     process_init();
@@ -62,7 +63,6 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     __sync_synchronize();
     virtio_disk_init();
     // virtioTest();
-    // clock_init();
   } else {
     while(started == 0)
       ;

@@ -43,6 +43,7 @@
 
 static struct rbNode *rbRoot;
 static struct rbNode *NIL;
+static struct spinlock rb_lock;
 
 static void left_rotate(struct rbNode *node) {
   struct rbNode *rnode = node->right;
@@ -318,6 +319,7 @@ void rb_init() {
   NIL->p = NULL;
   NIL->parent = NULL;
   rbRoot = NIL;
+  initlock(&rb_lock, "rb_lock");
 }
 
 static struct rbNode *inorder(struct rbNode *root) {
@@ -353,11 +355,14 @@ void schedule(void) {
   struct rbNode *node = NULL;
   struct proc *next;
 
+  intr_on();
   for (; ;) {
-    intr_on();
+    acquire(&rb_lock);
     bool found = (node = find_next_proc()) != NIL;
     if (found) {
       next = node->p;
+      rb_drop_node(node);
+      release(&rb_lock);
       next->status = RUNNING;
       c->proc = next;
       swtch(&c->context, &next->context);
@@ -365,8 +370,7 @@ void schedule(void) {
       release(&next->lock);
     } else {
       // nothing todo
-      intr_on();
-      asm volatile("wfi");
+      release(&rb_lock);
     }
   }
 }

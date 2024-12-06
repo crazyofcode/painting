@@ -39,6 +39,7 @@ void release(struct spinlock *lk) {
   if(!holding(lk))
     panic("release");
 
+  lk->cpu = NULL;
   // Tell the C compiler and the CPU to not move loads or stores
   // past this point, to ensure that all the stores in the critical
   // section are visible to other CPUs before the lock is released,

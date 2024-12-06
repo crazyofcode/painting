@@ -6,6 +6,7 @@ OBJDUMP = $(TOOLPREFIX)objdump
 
 QEMUOPTS = -machine virt -cpu rv64 -kernel $T/kernel -m 512M -smp $(CPUS) -nographic
 QEMUOPTS += -bios default
+QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 

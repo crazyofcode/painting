@@ -37,12 +37,16 @@ int dev_intr(void) {
     int irq = plic_claim();
     if (irq == VIRTIO0_IRQ)
       virtio_disk_intr();
+    else if (irq == 0) {
+      // ignore
+    }
     else {
       printf("unexpected interrupt irq=%d\n", irq);
+      return 0;
     }
     plic_complete(irq);
     return 1;
-  } else if (scause == 0x8000000000000009L) {
+  } else if (scause == 0x8000000000000005L) {
     clock_intr();
     if (r_tp() == 0) {
       acquire(&tickslock);
@@ -53,7 +57,6 @@ int dev_intr(void) {
   } else {
     return 0;
   }
-  return 0;
 }
 
 void kerneltrap(void) {
@@ -77,7 +80,7 @@ void kerneltrap(void) {
   // 如果是时钟中断
   // 当前运行的进程就会放弃 cpu 资源
   if (which_dev == 2)
-    yield();
+    // yield();
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.

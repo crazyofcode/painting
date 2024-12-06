@@ -74,14 +74,20 @@ struct trapframe {
   /* 280 */ uint64_t t6;
 };
 
+struct chidl_entry {
+  int               exit_state;
+  struct list_elem  elem;
+  bool              is_waiting;
+  pid_t             pid;
+};
+
 struct proc {
   struct spinlock     lock;
   enum  process_state status;
   pid_t               pid;
   uint64_t            kstack;
-  /*struct file_entry*  ofile;*/
   struct trapframe *  trapframe;
-  /*struct inode *      cwd;*/
+  struct list         child_list;
   struct list_elem    elem;
   int                 priority;
   struct proc *       parent;
