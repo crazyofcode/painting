@@ -1,5 +1,8 @@
 #include <types.h>
+#include <riscv.h>
 #include <timer.h>
+#include <sbi.h>
+#include <macro.h>
 
 uint64_t get_timerstamp() {
   uint64_t n;
@@ -12,11 +15,12 @@ uint64_t get_time() {
 }
 
 void clock_init() {
-  intr_on();
-  sbi_set_timer(get_timerstamp() + INTERVAL);
+  uint64_t ticks = get_timerstamp() + INTERVAL;
+  sbi_set_timer(ticks);
 }
 
 
 void clock_intr() {
+  log("clock_intr\n");
   sbi_set_timer(get_timerstamp() + INTERVAL);
 }

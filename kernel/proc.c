@@ -90,13 +90,13 @@ int getpid() {
 }
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
-void forkret(void) {
-  // 在scheduler里会获取该进程的锁
-  struct proc *p = cur_proc();
-  release(&p->lock);
-
-  usertrapret();
-}
+// void forkret(void) {
+//   // 在scheduler里会获取该进程的锁
+//   struct proc *p = cur_proc();
+//   release(&p->lock);
+//
+//   usertrapret();
+// }
 
 pagetable_t process_pagetable(struct proc *p) {
   pagetable_t pagetable;
@@ -189,10 +189,10 @@ struct proc *process_create(void) {
   p->kstack = va;
   // create a user page for the giving process
   p->pagetable = process_pagetable(p);
-  // Set up new context to start executing at forkret,
+  // Set up new context to start executing at usertrapret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
-  p->context.ra = (uint64_t)forkret;
+  p->context.ra = (uint64_t)usertrapret;
   p->context.sp = p->kstack + PGSIZE;
 
   // Parameters to initialize the process structure
@@ -210,9 +210,8 @@ struct proc *process_create(void) {
 }
 
 void run_first_task(void) {
-  printf("entry run_first_task\n");
-  release(&cur_proc()->lock);
-  filesys_init();
+  ASSERT(intr_get());
+  // filesys_init();
   if (!process_execute("/sh", NULL)) {
     log("sh exec fail, will shutdown...");
     sbi_shutdown();
@@ -292,6 +291,8 @@ void init_first_proc(void) {
   rb_init();
   struct proc *p = process_create();
   p->context.ra = (uint64_t)run_first_task;
+  p->trapframe->a0 = 0;
+  p->status = RUNNABLE;
   rb_push_back(p);
 }
 
@@ -394,6 +395,7 @@ struct proghdr {
 #define ELF_PROG_FLAG_READ      4
 
 bool loader(const char *file) {
+  return false;
   bool success = false;
   uint64_t  sz = 0;
   size_t bytes_zero;

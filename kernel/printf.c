@@ -23,10 +23,7 @@ int puts(char *string) {
 static char digital[] = "0123456789abcdef";
 static char NumToChar[MAXLEN];
 
-struct {
-  struct spinlock lock;
-  int locked;
-} pr;
+static struct spinlock pr;
 
 static void
 printstr(const char *str)
@@ -137,11 +134,7 @@ printf(const char *fmt, ...)
 {
   va_list ap;
 
-  int locked;
-
-  locked = pr.locked;
-  if (locked)
-    acquire(&pr.lock);
+  acquire(&pr);
 
   va_start(ap, fmt);
 
@@ -149,34 +142,38 @@ printf(const char *fmt, ...)
 
   va_end(ap);
 
-  if (locked)
-    release(&pr.lock);
+  release(&pr);
 }
 
 void
 printfinit()
 {
-  initlock(&pr.lock, "pr");
-  pr.locked = true;
+  initlock(&pr, "pr");
 }
 
 void
 panic(const char *str) {
-  pr.locked = 0;
-  printf("panic: ");
-  printf(str);
-  printf("\n");
-  pr.locked = 1;
-  while (1)
+  printf("panic: %s\n", str);
+  // sbi_shutdown();
+  while(1)
     ;
 }
 
-void _log(const char *file, int line, const char *func, const char *format, ...) {
-    printf("[%s:%d][%s] ", file, line, func);
+static void print_info(const char *format, ...) {
+  va_list ap;
+  va_start(ap, format);
+  vsprintf(ap, format);
+  va_end(ap);
+}
 
-    va_list args;
-    va_start(args, format);
-    vsprintf(args, format);
-    va_end(args);
+void _log(const char *file, int line, const char *func, const char *format, ...) {
+  acquire(&pr);
+  print_info("[%s:%d][%s] ", file, line, func);
+
+  va_list args;
+  va_start(args, format);
+  vsprintf(args, format);
+  va_end(args);
+  release(&pr);
 }
 

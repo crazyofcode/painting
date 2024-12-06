@@ -70,7 +70,7 @@ void kerneltrap(void) {
   int which_dev = 0;
   which_dev = dev_intr();
   if (which_dev == 0) {
-    log("unknown source: scause: %08x, sepc: %08x, stvec: %08x\n", r_scause(), r_sepc(), r_stvec());
+    log("on cpu %d, unknown source: scause: %08x, sepc: %08x, stval: %08x\n", r_tp(), r_scause(), r_sepc(), r_stval());
     panic("kerneltrap");
   }
 
@@ -85,8 +85,59 @@ void kerneltrap(void) {
   w_sstatus(sstatus);
 }
 
-void usertrap() {
-  panic("todo");
+//
+// handle an interrupt, exception, or system call from user space.
+// called from trampoline.S
+//
+void
+usertrap(void)
+{
+  int which_dev = 0;
+
+  if((r_sstatus() & SSTATUS_SPP) != 0)
+    panic("usertrap: not from user mode");
+
+  // send interrupts and exceptions to kerneltrap(),
+  // since we're now in the kernel.
+  w_stvec((uint64_t)kernelvec);
+
+  struct proc *p = cur_proc();
+  
+  // save user program counter.
+  p->trapframe->epc = r_sepc();
+  log("r_sepc: 0x%x\n", r_sepc());
+  
+  if(r_scause() == 8){
+    // system call
+
+    // if(killed(p))
+    //   exit(-1);
+
+    // sepc points to the ecall instruction,
+    // but we want to return to the next instruction.
+    p->trapframe->epc += 4;
+
+    // an interrupt will change sepc, scause, and sstatus,
+    // so enable only now that we're done with those registers.
+    intr_on();
+
+    // syscall();
+  } else if((which_dev = dev_intr()) != 0){
+    // ok
+  } else {
+    printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+    // setkilled(p);
+  }
+
+  // if(killed(p))
+  //   exit(-1);
+
+  // give up the CPU if this is a timer interrupt.
+  if(which_dev == 2)
+    yield();
+
+  usertrapret();
 }
 
 void usertrapret(void) {

@@ -20,12 +20,15 @@
 #include <list.h>
 #include <buf.h>
 #include <file.h>
+#include <timer.h>
 
 // entry.S needs one stack per CPU.
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 volatile static int started = 0;
 
 void main(uint64_t hartid, uint64_t _dtbEntry) {
+// enable some supervisor interrupt
+	w_sie(r_sie() | SIE_SEIE | SIE_SSIE | SIE_STIE);
   w_tp(hartid);
   if (started == 0) {
     dtbEntryinit(_dtbEntry);
@@ -42,13 +45,13 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     trapinithart();
     plicinit();
     plicinithart(hartid);
-    virtio_disk_init();
     buddy_init();
     slab_init();
     process_init();
     init_fs();
-    __sync_synchronize();
+    init_first_proc();
     started = 1;
+    __sync_synchronize();
     for (int i = 0; i < NCPU; i++) {
       if (i != hartid)
         sbi_hart_start(i, KERNBASE, 0);
@@ -57,10 +60,13 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     while(started != NCPU)
       ;
     __sync_synchronize();
-    init_first_proc();
+    virtio_disk_init();
+    // virtioTest();
+    // clock_init();
   } else {
     while(started == 0)
       ;
+    __sync_synchronize();
     kvminithart();    // turn on paging
     trapinithart();   // install kernel trap vector
     plicinithart(hartid);   // ask PLIC for device interrupts

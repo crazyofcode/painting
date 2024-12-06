@@ -16,8 +16,9 @@ void initlock(struct spinlock *lk, char *name) {
 
 void acquire(struct spinlock *lk) {
   push_off(); // disable interrupts to avoid deadlock.
-  if(holding(lk))
+  if(holding(lk)) {
     panic("acquire");
+  }
 
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
   //   a5 = 1
@@ -54,6 +55,7 @@ void release(struct spinlock *lk) {
   //   s1 = &lk->locked
   //   amoswap.w zero, zero, (s1)
   __sync_lock_release(&lk->locked);
+  pop_off();
 }
 uint32_t holding(struct spinlock *lk) {
   return lk->cpu == cur_cpu() && lk->locked;
@@ -75,7 +77,7 @@ pop_off(void)
 {
   struct cpu *c = cur_cpu();
   if(intr_get())
-    panic("pop_off - interruptible");
+    panic("pop_off - interrupt enable");
   if(c->noff < 1)
     panic("pop_off");
   c->noff -= 1;

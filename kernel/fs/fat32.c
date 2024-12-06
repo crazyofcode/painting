@@ -11,6 +11,8 @@
 #include <defs.h>
 #include <dirent.h>
 #include <pm.h>
+#include <riscv.h>
+#include <stdio.h>
 
 #define   FATDIR_PERM(entry) (*(char *)entry + SHORT_NAME_LEN)
 #define   cal_cluster_pos(FstClusHI, FstClusLO) ((uint32_t)FstClusHI * (1 << 16) + (uint32_t)FstClusLO)

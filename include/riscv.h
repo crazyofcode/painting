@@ -51,7 +51,12 @@ static inline uint64_t r_sepc() {
 static inline void  w_sepc(uint64_t x) {
   asm volatile("csrw sepc, %0" : : "r"(x));
 }
-// sstatus register
+
+static inline uint64_t r_stval() {
+  uint64_t x;
+  asm volatile("csrr %0, stval" : "=r"(x));
+  return x;
+}
 // Supervisor Interrupt Enable
 #define SIE_SEIE (1L << 9) // external
 #define SIE_STIE (1L << 5) // timer

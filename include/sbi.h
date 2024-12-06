@@ -106,6 +106,10 @@ static inline struct sbiret sbi_hart_start(unsigned long hartid,
   return SBI_CALL_3(SBI_EXT_HSM, SBI_EXT_HSM_HART_START, hartid, start_addess, opaque);
 }
 
+static inline struct sbiret sbi_set_timer(unsigned long ticks) {
+  return SBI_CALL_1(SBI_EXT_TIME, SBI_EXT_TIME_SET_TIMER, ticks);
+}
+
 static inline void sbi_error_handler(long error) {
   if (error != SBI_ERR_IO) {
     // error_table[error];

@@ -8,8 +8,6 @@
 #include <riscv.h>
 #include <schedule.h>
 
-static struct spinlock rbTree;
-static struct rbNode *leftmost;
 #define NEW_NODE(p) ({           \
         struct rbNode *node = kalloc(sizeof(struct rbNode), RB_MODE);    \
         ASSERT_INFO(node != NULL, "rbNode alloc fault");      \
@@ -306,7 +304,6 @@ void rb_push_back(struct proc *p) {
     return;
 
   fixed_insert(node);
-  leftmost = successor(rbRoot);
 }
 
 void rb_pop_front(struct proc *p) {
@@ -314,16 +311,32 @@ void rb_pop_front(struct proc *p) {
 }
 
 void rb_init() {
-  initlock(&rbTree, "rbTree");
   NIL = kalloc(sizeof (struct rbNode), RB_MODE);
   NIL->left = NIL;
   NIL->right = NIL;
   NIL->color = BLACK;
   NIL->p = NULL;
   NIL->parent = NULL;
-  leftmost = NULL;
   rbRoot = NIL;
-  log("rb_init finish\n");
+}
+
+static struct rbNode *inorder(struct rbNode *root) {
+  if (root == NIL)
+    return NIL;
+  struct rbNode *ret = inorder(root->left);
+  if (ret != NIL && ret->p->status == RUNNABLE)
+    return ret;
+  if (root->p->status == RUNNABLE)
+    return root;
+  return inorder(root->right);
+}
+
+static struct rbNode *find_next_proc() {
+  if (rbRoot == NIL) {
+    return NIL;
+  } else {
+    return inorder(rbRoot);
+  }
 }
 
 void  yield() {
@@ -342,21 +355,18 @@ void schedule(void) {
 
   for (; ;) {
     intr_on();
-    acquire(&rbTree);
-    if (leftmost != NULL || (node = successor(rbRoot)) != NIL) {
-      next = leftmost == NULL ? node->p : leftmost->p;
-      rb_drop_node(leftmost == NULL ? node : leftmost);
-      release(&rbTree);
-      acquire(&next->lock);
+    bool found = (node = find_next_proc()) != NIL;
+    if (found) {
+      next = node->p;
       next->status = RUNNING;
       c->proc = next;
       swtch(&c->context, &next->context);
       c->proc = 0;
       release(&next->lock);
     } else {
-      // asm volatile("wfi");
-      release(&rbTree);
-      continue;
+      // nothing todo
+      intr_on();
+      asm volatile("wfi");
     }
   }
 }

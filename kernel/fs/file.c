@@ -18,11 +18,11 @@ void filesys_init(void) {
 }
 
 int file_open(const char *path, int flags) {
-  panic("todo");
+  panic("todo1");
 }
 void file_close(int fd) {
 
-  panic("todo");
+  panic("todo2");
 }
 bool file_create(const char *path, mode_t mode) {
   // struct dirent *dir = NULL;
@@ -34,17 +34,17 @@ bool file_create(const char *path, mode_t mode) {
   //
   // struct dirent *file;
   // return createItemAt(dir, filename, &file, mode, false);
-  panic("todo");
+  panic("todo3");
 }
 size_t file_read(int fd, uint64_t dst, size_t sz) {
 
-  panic("todo");
+  panic("todo4");
 }
 size_t file_write(int fd, uint64_t src, size_t sz) {
 
-  panic("todo");
+  panic("todo5");
 }
 void file_seek(int fd, off_t off, int flag) {
 
-  panic("todo");
+  panic("todo6");
 }
