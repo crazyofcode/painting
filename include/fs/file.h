@@ -10,9 +10,9 @@
 /*extern static struct filesysytem fs[MAX_FS_NUM];*/
 
 void      init_fs(void);
-int       file_open(const char *, int);
+int       file_open(uint64_t, int);
 void      file_close(int);
-bool      file_create(const char *, mode_t);
+bool      file_create(uint64_t, mode_t, struct file *);
 size_t    file_read(int, uint64_t, size_t);
 size_t    file_write(int, uint64_t, size_t);
 void      file_seek(int, off_t, int);
