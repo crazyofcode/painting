@@ -345,6 +345,7 @@ void  yield() {
   struct proc *p = cur_proc();
   acquire(&p->lock);
   p->status = RUNNABLE;
+  rb_push_back(p);
   sched();
   release(&p->lock);
 }
@@ -371,6 +372,8 @@ void schedule(void) {
     } else {
       // nothing todo
       release(&rb_lock);
+      intr_on();
+      asm volatile("wfi");
     }
   }
 }

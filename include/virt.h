@@ -40,9 +40,6 @@ struct disk {
   // disk command headers.
   // one-for-one with descriptors, for convenience.
   struct virtio_blk_req ops[NUM];
-  
-  struct spinlock vdisk_lock;
-  
 } ;
 
 #define     WRITE   1

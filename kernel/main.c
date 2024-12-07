@@ -50,7 +50,6 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     slab_init();
     process_init();
     init_fs();
-    init_first_proc();
     started = 1;
     __sync_synchronize();
     for (int i = 0; i < NCPU; i++) {
@@ -63,6 +62,7 @@ void main(uint64_t hartid, uint64_t _dtbEntry) {
     __sync_synchronize();
     virtio_disk_init();
     // virtioTest();
+    init_first_proc();
   } else {
     while(started == 0)
       ;

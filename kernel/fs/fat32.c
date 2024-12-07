@@ -45,7 +45,7 @@ static int clusinit(struct filesystem *fs) {
                                     header->number_fats * header->fat_size;
   fs->sbinfo.data_sector_cnt = header->large_sector_count - 
                                   fs->sbinfo.first_data_sector;
-  fs->sbinfo.cluster_cnt = fs->sbinfo.data_sector_cnt /
+  fs->sbinfo.cluster_cnt = fs->sbinfo.data_sector_cnt *
                             header->sectors_per_cluster;
   fs->sbinfo.bytes_per_clus = header->bytes_per_sector *
                             header->sectors_per_cluster;
@@ -174,12 +174,35 @@ static void build_dirent_tree(struct dirent *dir) {
     kpmfree(buf);
 }
 
+/**
+ * @brief 计数文件的簇数
+ */
+static int count_clusters(struct dirent *file) {
+	log("count Cluster begin!\n");
+
+	int clus = file->first_cluster;
+	int i = 0;
+	if (clus == 0) {
+		log("cluster is 0!\n");
+		return 0;
+	}
+	// 如果文件不包含任何块，则直接返回0即可。
+	else {
+		while (!FAT32_isEOF(clus)) {
+			clus = fatread(file->filesystem, clus);
+			i += 1;
+		}
+		log("count Cluster end!\n");
+		return i;
+	}
+}
+
 void fat32_init(struct filesystem *fs) {
   log("init fat32 ...\n");
   strncpy(fs->name, "FAT32", 5);
 
   ASSERT_INFO(clusinit(fs) == 0, "clusinit fault");
-  log("clus init finish");
+  log("clus init finish\n");
 
   fs->root = dirent_alloc();
   fs->root->first_cluster = fs->superblock.cluster_root_directory;
@@ -189,9 +212,12 @@ void fat32_init(struct filesystem *fs) {
   fs->root->parent = NULL;
   fs->root->linkcnt = 1;
   fs->root->offset = 0;
+  fs->root->size = count_clusters(fs->root) * CLUSTER_SIZE(fs);
   list_init(&fs->root->child);
+  ASSERT_INFO(sizeof(struct FAT32Directory) == DIRENT_SIZE, "FAT32Directory size is not DIRENT_SIZE");
 
   build_dirent_tree(fs->root);
+  log("fat fs init finish\n");
 }
 
 uint32_t fatread(struct filesystem *fs, uint32_t clusterNo) {
@@ -282,7 +308,7 @@ uint32_t clusread(struct filesystem *fs, uint32_t clusNo, uint32_t offset
   uint32_t secNo = first_sector_clus(fs, clusNo) + offset /
                         fs->superblock.bytes_per_sector;
   uint32_t secOff = offset % fs->superblock.bytes_per_sector;
-  ASSERT_INFO(n < fs->sbinfo.bytes_per_clus - offset,
+  ASSERT_INFO(n <= fs->sbinfo.bytes_per_clus - offset,
               "clusread: The size of the \
               required read exceeds the remaining space in the cluster.");
   uint32_t read_len = 0;

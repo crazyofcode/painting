@@ -79,8 +79,8 @@ void kerneltrap(void) {
 
   // 如果是时钟中断
   // 当前运行的进程就会放弃 cpu 资源
-  if (which_dev == 2)
-    // yield();
+  if (which_dev == 2 && cur_proc() != NULL)
+    yield();
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
@@ -137,7 +137,7 @@ usertrap(void)
   //   exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2 && cur_proc() != NULL)
     yield();
 
   usertrapret();

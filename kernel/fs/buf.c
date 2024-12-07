@@ -51,7 +51,7 @@ struct buf *bget(uint32_t dev, uint32_t blockno) {
   } else {
     tmp->dev = dev;
     tmp->blockno = blockno;
-    tmp->valid = 1;
+    tmp->valid = 0;
     tmp->refcnt = 1;
     release(&bcache.lock);
     acquiresleeplock(&tmp->lock);

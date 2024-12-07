@@ -213,6 +213,7 @@ struct proc *process_create(void) {
 }
 
 void run_first_task(void) {
+  log("entry first task\n");
   ASSERT(intr_get());
   filesys_init();
   process_execute("init", NULL);
@@ -397,7 +398,6 @@ struct proghdr {
 #define ELF_PROG_FLAG_READ      4
 
 bool loader(const char *file) {
-  return false;
   bool success = false;
   uint64_t  sz = 0;
   size_t bytes_zero;

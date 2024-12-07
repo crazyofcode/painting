@@ -112,5 +112,6 @@ struct SubSuperBlockInfo {
           (cluster - fs->superblock.cluster_root_directory) * \
           fs->superblock.sectors_per_cluster
 #define FATLDIR_SEQ(x) ((x & 0x3f))
+#define CLUSTER_SIZE(fs)  (fs->sbinfo.bytes_per_clus)
 
 #endif // !FAT32_H__

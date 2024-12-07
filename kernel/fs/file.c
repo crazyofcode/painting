@@ -5,11 +5,13 @@
 #include <fat32.h>
 #include <fatfs.h>
 #include <file.h>
+#include <dirent.h>
 
 struct filesystem *fat_fs;
 
 void filesys_init(void) {
   fat_fs = alloc_fs();
+  dirent_init();
 
   fat_fs->image = NULL;
   fat_fs->deviceNum = 0;
