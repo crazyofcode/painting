@@ -16,7 +16,7 @@
 #include <buddy.h>
 #include <schedule.h>
 #include <sbi.h>
-#include <file.h>
+#include <vfs.h>
 
 extern char trampoline[];
 void swtch(struct context *, struct context *);
@@ -401,7 +401,7 @@ bool loader(const char *file) {
   bool success = false;
   uint64_t  sz = 0;
   size_t bytes_zero;
-  int fd = file_open(file, 0);
+  int fd = filesys_open((uint64_t)file, 0);
   // 如果打开文件失败就直接返回
   // 通过返回值表示程序是否加载成功
   if (fd < 0)

@@ -6,6 +6,7 @@
 #include <fat32.h>
 #include <fatfs.h>
 #include <string.h>
+#include <fs.h>
 
 #define   MAX_FS_NUM    10
 static struct filesystem fs[MAX_FS_NUM];
@@ -25,7 +26,7 @@ struct filesystem *alloc_fs() {
   }
   panic("no more fs to alloc");
 }
-/*
+
 static int walkDir(struct filesystem *fs, const char *path, struct dirent *base_dir, struct dirent **dir,
                    struct dirent **f, char *lastElem, longEntSet *longSet) {
   struct dirent *tdir, tfile;
@@ -73,7 +74,12 @@ bool createItemAt(struct dirent *base_dir, const char *path, struct dirent **fil
 
   if ((r = walkDir(fs, path, base_dir, &dir, &f, lastElem, &longSet)) == 0) {
     log("file already exist\n");
-    return -E_FILE_EXIST;
+    return false;
   }
+  panic("createItemAt todo");
+  return false;
 }
-*/
+
+struct dirent *lookup_dirent(const char *path) {
+  panic("lookup_dirent");
+}

@@ -5,7 +5,6 @@
 #include <fatfs.h>
 #include <dirent.h>
 
-#define   MAX_DIRENT      1024
 static struct dirent dirent_poll[MAX_DIRENT];
 static struct list   dirent_list;
 

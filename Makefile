@@ -32,7 +32,10 @@ OBJS = \
 			 $T/sleeplock.o\
 			 $T/timer.o\
 			 $T/dirent.o\
-			 $T/fs.o
+			 $T/fs.o\
+			 $T/syscall.o\
+			 $T/sysproc.o\
+			 $T/sysfile.o
 
 -include ./scripts/config.mk
 

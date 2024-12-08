@@ -4,6 +4,16 @@
 #include <dirent.h>
 #include <vfs.h>
 
+static struct file *find_file(struct list *list, int fd) {
+  struct list_elem *e;
+  for (e = list_begin(list); e != list_end(list); e = list_next(e)) {
+    struct file *file = list_entry(e, struct file, elem);
+    if (file->fd == fd)
+      return file;
+  }
+  return NULL;
+}
+
 bool filesys_create(uint64_t path, mode_t mode) {
   struct dirent *file = dirent_alloc();
   ASSERT_INFO(file != NULL, "alloc dirent fault");
@@ -28,4 +38,24 @@ int filesys_open(uint64_t path, int flags) {
   file->deny_write = false;
   list_push_back(&cur_proc()->file_list, &file->elem);
   return file->fd;
+}
+
+off_t filesys_write(int fd, uint64_t addr, size_t size) {
+  struct proc *p = cur_proc();
+  struct file *file = find_file(&p->file_list, fd);
+  if (file == NULL)
+    return -1;
+  size = file_write(file->dirent, addr, size);
+  file->pos += size;
+  return size;
+}
+
+off_t filesys_read(int fd, uint64_t buf, size_t size) {
+  struct proc *p = cur_proc();
+  struct file *file = find_file(&p->file_list, fd);
+  if (file == NULL)
+    return -1;
+  size = file_read(file->dirent, buf, size);
+  file->pos += size;
+  return size;
 }
