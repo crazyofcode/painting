@@ -14,4 +14,6 @@ void        uvmfree(pagetable_t, uint64_t);
 
 int         copyout(pagetable_t, uint64_t, const char *, uint64_t);
 int         copyin(pagetable_t, char *, uint64_t, uint64_t);
+
+pte_t *     walk(pagetable_t, uint64_t, int);
 #endif //!VM_H__

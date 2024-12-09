@@ -7,7 +7,7 @@ struct dirent {
   uint64_t  size;
   uint32_t  first_cluster;
   uint32_t  offset;
-  /*enum {DIR_DIR, DIR_FILE, DIR_LINK} type;    // 目录, 文件, 链接*/
+  enum {DIR_DIR, DIR_FILE, DIR_LINK} type;    // 目录, 文件, 链接
   struct filesystem *filesystem;  // 所属的文件系统
   uint32_t  linkcnt;              // 链接数量
   struct dirent *parent;
@@ -35,8 +35,8 @@ void          fatinit(struct filesystem *);
 /*int           clusinit(struct filesystem *);*/
 uint32_t      fatread(struct filesystem *, uint32_t);
 void          fatwrite(struct filesystem *, uint32_t, uint32_t);
-uint32_t      fatalloc(struct filesystem *, uint32_t);
-void          fatfree(struct filesystem *, uint32_t, uint32_t);
+uint32_t      clusalloc(struct filesystem *, uint32_t);
+void          clusfree(struct filesystem *, uint32_t, uint32_t);
 uint32_t      clusread(struct filesystem *, uint32_t, uint32_t, uint64_t, uint64_t);
 uint32_t      cluswrite(struct filesystem *, uint32_t, uint32_t, uint64_t, uint64_t);
 uint32_t      count_clus(struct dirent *);

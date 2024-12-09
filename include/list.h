@@ -178,4 +178,17 @@ void list_unique(struct list*, struct list* duplicates, list_less_func*, void* a
 struct list_elem* list_max(struct list*, list_less_func*, void* aux);
 struct list_elem* list_min(struct list*, list_less_func*, void* aux);
 
+#define list_find(list, type, aux, argument) ({           \
+  struct list_elem *e;                                   \
+  type *ret = NULL;                                       \
+  for (e = list_begin(list); e != list_end(list); e = list_next(e)) { \
+    type *entry = list_entry(e, type, elem);              \
+    if (aux(entry, argument)) {                           \
+      ret = entry;                                        \
+      break;                                              \
+    }                                                     \
+  }                                                       \
+  ret;                                                    \
+})
+
 #endif /* lib/kernel/list.h */

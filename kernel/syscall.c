@@ -4,6 +4,8 @@
 #include <list.h>
 #include <spinlock.h>
 #include <proc.h>
+#include <defs.h>
+#include <stdio.h>
 #include <syscall.h>
 #include <syscall-nr.h>
 
@@ -27,16 +29,16 @@ static uint64_t argraw(int n) {
   return -1;
 }
 
-uint64_t argint(uint64_t *ptr, int n) {
+void argint(uint64_t *ptr, int n) {
   *ptr = argraw(n);
 }
-uint64_t argaddr(uint64_t *ptr, int n) {
+void argaddr(uint64_t *ptr, int n) {
   *ptr = argraw(n);
 }
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
-static uint64 (*syscalls[])(void) = {
+static uint64_t (*syscalls[])(void) = {
 // [SYS_fork]    sys_fork,
 // [SYS_exit]    sys_exit,
 // [SYS_wait]    sys_wait,

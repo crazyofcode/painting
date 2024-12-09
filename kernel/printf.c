@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <sbi.h>
 
-#define MAXLEN  64
-
 int putc(int ch) {
   return sbi_console_putchar(ch);
 }

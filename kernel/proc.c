@@ -50,7 +50,7 @@ static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_
       return false;
     }
 
-    if (file_read(fd, (uint64_t)pa, page_read_bytes) != page_read_bytes) {
+    if (filesys_read(fd, (char *)pa, page_read_bytes) != page_read_bytes) {
       kpmfree(pa);
       return false;
     }
@@ -202,6 +202,7 @@ struct proc *process_create(void) {
  
   p->parent = cur_proc();     // first proc should be NULL
   list_init(&p->child_list);
+  list_init(&p->file_list);
 
   acquire(&process_lock);
   list_push_back(&process_list, &p->elem);
@@ -255,6 +256,10 @@ bool process_execute(const char *_path, const char *argv[]) {
   }
 bad:
   return false;
+}
+
+void process_exit(void) {
+  panic("process_exit not implemented");
 }
 
 pid_t fork(void) {
@@ -410,7 +415,7 @@ bool loader(const char *file) {
   struct proc *p = cur_proc();
   // 然后读取程序头部信息
   struct elfhdr ehdr;
-  ASSERT(file_read(fd, (uint64_t)&ehdr, sizeof(struct elfhdr)) == sizeof(struct elfhdr));
+  ASSERT(filesys_read(fd, (char *)&ehdr, sizeof(struct elfhdr)) == sizeof(struct elfhdr));
 
   #if defined(__ISA_AM_NATIVE__)
   # define EXPECT_TYPE EM_X86_64
@@ -429,7 +434,7 @@ bool loader(const char *file) {
 
   struct proghdr phdr[ehdr.phnum];
   file_seek(fd, ehdr.phoff, SEEK_SET);
-  size_t bytes_read = file_read(fd, (uint64_t)phdr, sizeof (struct proghdr) * ehdr.phnum);
+  size_t bytes_read = filesys_read(fd, (char *)phdr, sizeof (struct proghdr) * ehdr.phnum);
   ASSERT(bytes_read == sizeof(struct proghdr) * ehdr.phnum);
 
   for (int i = 0; i < ehdr.phnum; i++) {

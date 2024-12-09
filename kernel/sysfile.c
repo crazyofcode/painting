@@ -1,7 +1,13 @@
 #include <types.h>
+#include <param.h>
 #include <spinlock.h>
+#include <macro.h>
+#include <stdio.h>
+#include <list.h>
 #include <proc.h>
+#include <defs.h>
 #include <vm.h>
+#include <vfs.h>
 #include <syscall.h>
 
 static bool valid_user_arg(uint64_t addr) {
@@ -52,7 +58,7 @@ uint64_t sys_open(void) {
     log("invalid user arg addr: 0x%08x\n", path);
     return -1;
   } else
-    return file_open(path, flags);
+    return filesys_open(path, flags);
 }
 
 uint64_t sys_write(void) {
@@ -61,7 +67,7 @@ uint64_t sys_write(void) {
   uint64_t size;
   argint(&fd, 0);
   argaddr(&addr, 1);
-  argint(&size, &2);
+  argint(&size, 2);
 
   if (!valid_user_arg(addr)) {
     log("invalid user arg addr: 0x%08x\n", addr);
@@ -85,7 +91,7 @@ uint64_t sys_read(void) {
   uint64_t size;
   argint(&fd, 0);
   argaddr(&addr, 1);
-  argint(&size, &2);
+  argint(&size, 2);
 
   if (!valid_user_arg(addr)) {
     log("invalid user arg addr: 0x%08x\n", addr);
@@ -93,7 +99,7 @@ uint64_t sys_read(void) {
   } else {
     char buf[size+1];
     transtr(addr, buf, size, false);
-    size = filesys_write(fd, buf, size);
+    size = filesys_read(fd, buf, size);
   }
   return size;
 }

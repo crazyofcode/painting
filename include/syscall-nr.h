@@ -1,5 +1,5 @@
-#ifndef SYSCALL-NR_H__
-#define SYSCALL-NR_H__
+#ifndef SYSCALL_NR_H__
+#define SYSCALL_NR_H__
 
 // System call numbers
 #define SYS_fork    1
@@ -23,5 +23,6 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_create 22
 
-#endif // !SYSCALL-NR_H__
+#endif // !SYSCALL_NR_H__

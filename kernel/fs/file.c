@@ -17,8 +17,12 @@
 struct filesystem *fat_fs;
 struct spinlock fd_lock;
 unsigned char fd_bitmap[MAX_DIRENT>>8];
+
+struct filesystem *get_root_fs(void) {
+  return fat_fs;
+}
 // free fd
-void fd_free(int fd) {
+void free_fd(int fd) {
   acquire(&fd_lock);
   if (fd >= 0 && fd < MAX_DIRENT) {
       fd_bitmap[fd >> 3] &= ~(1 << (fd & (~(0x07)))); // 释放该fd号，将该位设为0
@@ -27,7 +31,7 @@ void fd_free(int fd) {
 }
 
 // alloc fd
-int fd_alloc(void) {
+int alloc_fd(void) {
   acquire(&fd_lock);
   for (int i = 0; i < MAX_DIRENT; i++) {
       if ((fd_bitmap[i >> 8] & (1 << (i & (~(0x07))))) == 0) {
@@ -56,7 +60,7 @@ struct dirent *file_open(uint64_t path, int flags) {
   char filename[MAX_FILE_NAME_LEN];
   struct proc *p = cur_proc();
   copyin(p->pagetable, filename, path, MAX_FILE_NAME_LEN);
-  struct dirent *dirent = lookup_dirent(filename);
+  struct dirent *dirent = get_file(p->cwd, filename);
   // check permission
   if ((~(dirent->mode)) & flags) {
     printf("permission deny\n");
@@ -77,11 +81,11 @@ bool file_create(uint64_t path, mode_t mode, struct dirent *file) {
 
   return createItemAt(dir, filename, &file, mode, false);
 }
-size_t file_read(int fd, uint64_t dst, size_t sz) {
+size_t file_read(struct dirent *dirent, char *dst, size_t sz) {
 
   panic("todo4");
 }
-size_t file_write(int fd, uint64_t src, size_t sz) {
+size_t file_write(struct dirent *dirent, uint64_t src, size_t sz) {
 
   panic("todo5");
 }

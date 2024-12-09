@@ -1,7 +1,14 @@
 #include <types.h>
+#include <param.h>
 #include <macro.h>
+#include <list.h>
+#include <spinlock.h>
+#include <proc.h>
+#include <defs.h>
+#include <defs.h>
 #include <file.h>
 #include <dirent.h>
+#include <fs.h>
 #include <vfs.h>
 
 static struct file *find_file(struct list *list, int fd) {
@@ -17,7 +24,7 @@ static struct file *find_file(struct list *list, int fd) {
 bool filesys_create(uint64_t path, mode_t mode) {
   struct dirent *file = dirent_alloc();
   ASSERT_INFO(file != NULL, "alloc dirent fault");
-  if (!file_create(path, mode, &file)) {
+  if (!file_create(path, mode, file)) {
     dirent_free(file);
     log("create file %s fault\n", path);
     return false;
@@ -31,7 +38,7 @@ int filesys_open(uint64_t path, int flags) {
     return -1;
   }
   struct file *file = kalloc(sizeof(struct file), FILE_MODE);
-  file->flag = flag;
+  file->flag = flags;
   file->dirent = dirent;
   file->fd = alloc_fd();
   file->pos = 0;
@@ -50,7 +57,7 @@ off_t filesys_write(int fd, uint64_t addr, size_t size) {
   return size;
 }
 
-off_t filesys_read(int fd, uint64_t buf, size_t size) {
+off_t filesys_read(int fd, char *buf, size_t size) {
   struct proc *p = cur_proc();
   struct file *file = find_file(&p->file_list, fd);
   if (file == NULL)
@@ -59,3 +66,4 @@ off_t filesys_read(int fd, uint64_t buf, size_t size) {
   file->pos += size;
   return size;
 }
+

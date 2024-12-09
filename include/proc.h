@@ -88,6 +88,7 @@ struct proc {
   uint64_t            kstack;
   struct trapframe *  trapframe;
   struct list         child_list;
+  struct list         file_list;
   struct list_elem    elem;
   int                 priority;
   struct proc *       parent;

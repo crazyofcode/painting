@@ -33,6 +33,7 @@ OBJS = \
 			 $T/timer.o\
 			 $T/dirent.o\
 			 $T/fs.o\
+			 $T/vfs.o\
 			 $T/syscall.o\
 			 $T/sysproc.o\
 			 $T/sysfile.o
