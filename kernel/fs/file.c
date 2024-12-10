@@ -1,7 +1,6 @@
 #include <types.h>
 #include <param.h>
 #include <macro.h>
-#include <stdio.h>
 #include <list.h>
 #include <spinlock.h>
 #include <proc.h>
@@ -10,8 +9,6 @@
 #include <file.h>
 #include <dirent.h>
 #include <string.h>
-#include <vm.h>
-#include <defs.h>
 #include <fs.h>
 
 struct filesystem *fat_fs;
@@ -56,40 +53,54 @@ void filesys_init(void) {
   fat32_init(fat_fs);
 }
 
-struct dirent *file_open(uint64_t path, int flags) {
-  char filename[MAX_FILE_NAME_LEN];
-  struct proc *p = cur_proc();
-  copyin(p->pagetable, filename, path, MAX_FILE_NAME_LEN);
-  struct dirent *dirent = get_file(p->cwd, filename);
+struct dirent *file_open(struct dirent *base, char *path, int flags) {
+  struct dirent *dirent = get_file(base, path);
   // check permission
   if ((~(dirent->mode)) & flags) {
-    printf("permission deny\n");
+    log("permission deny\n");
     return NULL;
   }
   return dirent;
 }
-void file_close(int fd) {
 
-  panic("todo2");
+bool file_close(struct dirent *dirent) {
+  if (dirent == NULL)
+    return false;
+  dirent_free(dirent);
+  return true;
 }
-bool file_create(uint64_t path, mode_t mode, struct dirent *file) {
-  struct proc *p = cur_proc();
-  char filename[MAX_FILE_NAME_LEN];
-
-  struct dirent *dir = p->cwd;
-  copyin(p->pagetable, filename, path, MAX_FILE_NAME_LEN);
-
-  return createItemAt(dir, filename, &file, mode, false);
+bool file_create(struct dirent *dir, char *path, mode_t mode, struct dirent *file) {
+  return createItemAt(dir, path, &file, mode, false);
 }
-size_t file_read(struct dirent *dirent, char *dst, size_t sz) {
-
-  panic("todo4");
+size_t file_read(struct dirent *dirent, char *dst, off_t offset, size_t sz) {
+  if (dirent == NULL || dst == NULL)
+    return -1;
+  if (sz == 0)
+    return 0;
+  return fileread(dirent, (uint64_t)dst, offset, sz);
 }
-size_t file_write(struct dirent *dirent, uint64_t src, size_t sz) {
-
-  panic("todo5");
+size_t file_write(struct dirent *dirent, char *src, off_t offset, size_t sz) {
+  if (dirent == NULL || src == NULL)
+    return -1;
+  if (sz == 0)
+    return 0;
+  return filewrite(dirent, (uint64_t)src, offset, sz);
 }
-void file_seek(int fd, off_t off, int flag) {
 
-  panic("todo6");
+bool file_remove(struct dirent *base, char *filename) {
+  struct dirent *dirent = get_file(base, filename);
+  uint32_t clus = dirent->first_cluster;
+
+  uint32_t clus_size = CLUSTER_SIZE(dirent->filesystem);
+  uint32_t clus_num = dirent->size / clus_size + (dirent->size % clus_size == 0 ? 0 : 1);
+
+  for(int i = 0; i < clus_num; i++) {
+    uint32_t tmp = clus;
+    if (FAT32_isEOF(tmp))
+      return false;
+    clus = fatread(dirent->filesystem, clus);
+    clusfree(dirent->filesystem, tmp, 0);
+  }
+  return true;
 }
+

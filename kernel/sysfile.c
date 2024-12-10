@@ -43,7 +43,9 @@ uint64_t sys_create(void) {
     return -1;
   }
 
-  if (filesys_create(path, mode))
+  char filename[MAX_FILE_NAME_LEN];
+  transtr(path, filename, MAX_FILE_NAME_LEN, true);
+  if (filesys_create(cur_proc(), filename, mode))
     return -1;
   else
     return 0;
@@ -57,8 +59,11 @@ uint64_t sys_open(void) {
   if (!valid_user_arg(path)) {
     log("invalid user arg addr: 0x%08x\n", path);
     return -1;
-  } else
-    return filesys_open(path, flags);
+  } else {
+    char filename[MAX_FILE_NAME_LEN];
+    transtr(path, filename, MAX_FILE_NAME_LEN, true);
+    return filesys_open(cur_proc(), filename, flags);
+  }
 }
 
 uint64_t sys_write(void) {
@@ -73,13 +78,13 @@ uint64_t sys_write(void) {
     log("invalid user arg addr: 0x%08x\n", addr);
     return -1;
   } else {
+    char buf[size+1];
+    transtr(addr, buf, size, true);
     if (fd == STDOUT || fd == STDERR) {
-      char buf[size+1];
-      transtr(addr, buf, size, true);
       buf[size] = '\0';
       printf("%s", buf);
     } else {
-      size = filesys_write(fd, addr, size);
+      size = filesys_write(cur_proc(), fd, buf, size);
     }
   }
   return size;
@@ -98,8 +103,8 @@ uint64_t sys_read(void) {
     return -1;
   } else {
     char buf[size+1];
+    size = filesys_read(cur_proc(), fd, buf, size);
     transtr(addr, buf, size, false);
-    size = filesys_read(fd, buf, size);
   }
   return size;
 }

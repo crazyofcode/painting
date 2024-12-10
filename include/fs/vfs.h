@@ -12,11 +12,13 @@ struct file {
   struct list_elem  elem;
 };
 
-bool      filesys_create(uint64_t, mode_t);
-int       filesys_open(uint64_t, int);
-void      filesys_close(int);
-off_t     filesys_read(int, char *, size_t);
-off_t     filesys_write(int, uint64_t, size_t);
-void      filesys_seek(int, off_t, int);
+bool      filesys_create(struct proc *, char *, mode_t);
+int       filesys_open(struct proc *, char *, int);
+bool      filesys_close(struct proc *, int);
+off_t     filesys_read(struct proc *, int, char *, size_t);
+off_t     filesys_write(struct proc *, int, char *, size_t);
+bool      filesys_remove(struct proc *, char *);
+void      filesys_seek(struct proc *p, int, off_t, int);
+bool      filesys_link(char *, char *, int);
 
 #endif // !VFS_H__

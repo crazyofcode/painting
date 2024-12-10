@@ -1,6 +1,7 @@
 #ifndef PARAM_H__
 #define PARAM_H__
 
+#define   MAX_FILE_NAME_LEN 32
 #define FATDIR_DLT  0x20
 #define MAXARG    32
 #define NCPU      4

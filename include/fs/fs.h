@@ -9,6 +9,8 @@ struct long_entry_set {
 
 bool                createItemAt(struct dirent *, const char *, struct dirent **, mode_t, bool);
 struct dirent *     get_file(struct dirent *, const char *);
+int                 fileread(struct dirent *, uint64_t, uint32_t, uint32_t);
+int                 filewrite(struct dirent *, uint64_t, uint32_t, uint32_t);
 
 #define E_BAD_PATH    1
 #define E_NOT_FOUND   2

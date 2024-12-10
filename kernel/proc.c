@@ -50,7 +50,7 @@ static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_
       return false;
     }
 
-    if (filesys_read(fd, (char *)pa, page_read_bytes) != page_read_bytes) {
+    if (filesys_read(cur_proc(), fd, (char *)pa, page_read_bytes) != page_read_bytes) {
       kpmfree(pa);
       return false;
     }
@@ -405,17 +405,19 @@ struct proghdr {
 bool loader(const char *file) {
   bool success = false;
   uint64_t  sz = 0;
+  struct proc *p = cur_proc();
   size_t bytes_zero;
-  int fd = filesys_open((uint64_t)file, 0);
+  char path[strlen(file) + 1];
+  strncpy(path, file, strlen(file));
+  int fd = filesys_open(p, path, 0);
   // 如果打开文件失败就直接返回
   // 通过返回值表示程序是否加载成功
   if (fd < 0)
     return false;
 
-  struct proc *p = cur_proc();
   // 然后读取程序头部信息
   struct elfhdr ehdr;
-  ASSERT(filesys_read(fd, (char *)&ehdr, sizeof(struct elfhdr)) == sizeof(struct elfhdr));
+  ASSERT(filesys_read(p, fd, (char *)&ehdr, sizeof(struct elfhdr)) == sizeof(struct elfhdr));
 
   #if defined(__ISA_AM_NATIVE__)
   # define EXPECT_TYPE EM_X86_64
@@ -434,7 +436,7 @@ bool loader(const char *file) {
 
   struct proghdr phdr[ehdr.phnum];
   file_seek(fd, ehdr.phoff, SEEK_SET);
-  size_t bytes_read = filesys_read(fd, (char *)phdr, sizeof (struct proghdr) * ehdr.phnum);
+  size_t bytes_read = filesys_read(p, fd, (char *)phdr, sizeof (struct proghdr) * ehdr.phnum);
   ASSERT(bytes_read == sizeof(struct proghdr) * ehdr.phnum);
 
   for (int i = 0; i < ehdr.phnum; i++) {
@@ -460,7 +462,7 @@ bool loader(const char *file) {
       goto done;
     sz = mem_page + bytes_read + bytes_zero;
   }
-  file_close(fd);
+  filesys_close(p, fd);
   if (!setup_stack(p->pagetable, sz, &p->trapframe->sp))
     goto done;
   p->trapframe->epc = ehdr.entry;

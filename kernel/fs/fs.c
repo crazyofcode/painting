@@ -217,7 +217,7 @@ static void fileExtend(struct dirent *file, uint32_t new_size) {
   }
 }
 
-int filewrite(struct dirent *file, int user, uint64_t src, uint32_t off, uint32_t n) {
+int filewrite(struct dirent *file, uint64_t src, uint32_t off, uint32_t n) {
   if (n == 0)   return 0;
 
   if (off > file->size) {
