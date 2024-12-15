@@ -55,6 +55,10 @@ void filesys_init(void) {
 
 struct dirent *file_open(struct dirent *base, char *path, int flags) {
   struct dirent *dirent = get_file(base, path);
+  if (dirent == NULL) {
+    log("not found\n");
+    return NULL;
+  }
   // check permission
   if ((~(dirent->mode)) & flags) {
     log("permission deny\n");

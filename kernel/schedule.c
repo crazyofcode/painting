@@ -325,6 +325,7 @@ void rb_init() {
 static struct rbNode *inorder(struct rbNode *root) {
   if (root == NIL)
     return NIL;
+  // log("root->left: %p\n", root->left);
   struct rbNode *ret = inorder(root->left);
   if (ret != NIL && ret->p->status == RUNNABLE)
     return ret;
@@ -342,6 +343,7 @@ static struct rbNode *find_next_proc() {
 }
 
 void  yield() {
+  log("entry yield....\n");
   struct proc *p = cur_proc();
   acquire(&p->lock);
   p->status = RUNNABLE;
@@ -368,7 +370,6 @@ void schedule(void) {
       c->proc = next;
       swtch(&c->context, &next->context);
       c->proc = 0;
-      release(&next->lock);
     } else {
       // nothing todo
       release(&rb_lock);

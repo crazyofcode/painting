@@ -8,8 +8,16 @@
 #include <string.h>
 #include <file.h>
 #include <fs.h>
+#include <spinlock.h>
+#include <sleeplock.h>
+#include <buf.h>
+#include <pm.h>
 
 #define   MAX_FS_NUM    10
+#define   FATDIR_PERM(entry) (*(char *)entry + SHORT_NAME_LEN)
+#define   cal_cluster_pos(FstClusHI, FstClusLO) ((uint32_t)FstClusHI * (1 << 16) + (uint32_t)FstClusLO)
+#define   is_long_file_name(entry)   ((entry->file_attribute & (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID))\
+                                        == (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID))
 static struct filesystem fs[MAX_FS_NUM];
 
 static bool is_equal_dirent(struct dirent *entry, const char *arg) {
@@ -18,6 +26,127 @@ static bool is_equal_dirent(struct dirent *entry, const char *arg) {
   } else {
     return false;
   }
+}
+
+// 读取簇内容
+static void read_multiple_cluster(struct filesystem *fs, uint64_t clusNo, char *buf, uint32_t size) {
+    for (uint32_t offset = 0; offset < size; offset += BSIZE) {
+        clusread(fs, clusNo, offset, (uint64_t)(buf + offset), BSIZE);
+    }
+}
+
+// 判断目录项是否无效
+static int is_invalid_entry(struct FAT32Directory *entry) {
+  if (entry->dir_name[0] == FATDIR_DLT ||
+      strncmp((const char *)entry->dir_name, ".          ", SHORT_NAME_LEN) == 0 ||
+      strncmp((const char *)entry->dir_name, "..         ", SHORT_NAME_LEN) == 0)
+   return 0;
+  else if (entry->dir_name[0] == 0)
+    return -1;
+  else
+    return 1;
+}
+
+// 处理长文件名
+static int handle_long_file_name(char *buf, uint32_t offset, int longEntSeq, char *rawName, int *aidx) {
+  struct FAT32LongDirectory *longEnt = (struct FAT32LongDirectory *)(buf + offset);
+  int prevSeq = longEntSeq;
+  longEntSeq = FATLDIR_SEQ(*(char *)longEnt);
+  int idx = *aidx; 
+
+  if (prevSeq)    rawName[idx + 13] = '\0';
+  wstr2str(rawName + idx, (char *)longEnt + 1, 10);
+  wstr2str(rawName + 5 + idx, (char *)longEnt + 14, 12);
+  wstr2str(rawName + 11 + idx, (char *)longEnt + 28, 4);
+  *aidx = idx + 13;
+
+  return longEntSeq;
+}
+
+// 填写文件名
+static void fill_file_name(char *name, struct FAT32Directory *entry) {
+    if (is_long_file_name(entry)) {
+        fill_fat32_long_name(name, (char *)entry);
+    } else {
+        read_fat32_short_name(name, (char *)entry->dir_name);
+    }
+}
+
+// 创建目录项
+void match_dirent_entry(const char *name, struct dirent *parent, struct FAT32Directory *entry, uint32_t offset, struct dirent **lastDir) {
+  struct dirent *newDir = *lastDir;
+  char _name[MAX_FILE_NAME_LEN];
+
+  fill_file_name(_name, entry);
+  if (strncmp(_name, name, strlen(name)))
+    return;
+
+  newDir->filesystem = parent->filesystem;
+  newDir->first_cluster = cal_cluster_pos(entry->dir_FstClusHI, entry->dir_FstClusLO);
+  newDir->size = entry->dir_FileSize;
+  newDir->mode |= ((FATDIR_PERM(entry) & ATTR_DIRECTORY) ? ATTR_DIRECTORY : ATTR_FILE);
+  newDir->parent = parent;
+  newDir->linkcnt = 1;
+  newDir->parent->offset = offset;
+
+  list_push_back(&parent->child, &newDir->elem);
+  if (newDir->mode & ATTR_DIRECTORY)
+    list_init(&newDir->child);
+
+  memcpy(newDir->name, name, strlen(name));
+
+  log("%s\n", newDir->name);
+}
+
+// 解析簇中的目录项
+static int parse_directory_entries(const char *name, struct dirent *parent, char *buf, uint32_t clusSize, struct dirent **lastDir) {
+  bool longEntSeq = false;
+  char tname[MAX_FILE_NAME_LEN];
+  int idx = 0;
+
+  for (uint32_t i = 0; i < clusSize; i += DIRECTORY_SIZE) {
+    struct FAT32Directory *entry = (struct FAT32Directory *)(buf + i);
+
+    int ret = is_invalid_entry(entry);
+    if (ret == 0) {
+      idx = 0;
+      memset(tname, 0, MAX_FILE_NAME_LEN);
+      longEntSeq = false;
+      continue;
+    } else if (ret == -1)
+      return -1;
+
+    if (is_long_file_name(entry)) {
+      longEntSeq = handle_long_file_name(buf, i, longEntSeq, tname, &idx);
+      continue;
+    }
+
+    log("%s\n", tname);
+    match_dirent_entry(name, parent, entry, i, lastDir);
+  }
+  return 0;
+}
+
+static void find_dirent_entry(struct dirent *dir, const char *name, struct dirent **entry) {
+  uint64_t clusNo = dir->first_cluster;
+  struct filesystem *fs = dir->filesystem;
+  uint32_t clusSize = fs->sbinfo.bytes_per_clus;
+  char *buf = kpmalloc();
+
+  while (1) {
+    read_multiple_cluster(fs, clusNo, buf, clusSize);
+    int result = parse_directory_entries(name, dir, buf, clusSize, entry);
+
+    if (result == -1) {
+      break;  // 到达文件尾或无效簇
+    }
+
+    clusNo = fatread(fs, clusNo);  // 获取下一个簇号
+    if (FAT32_isEOF(clusNo)) {
+      break;  // 到达文件尾
+    }
+  }
+  kpmfree(buf);
 }
 
 void init_fs(void) {
@@ -42,65 +171,70 @@ static char *skip_slash(char *path) {
   return path;
 }
 
+static int parse_path(const char *path, char token[MAX_FILE_NAME_LEN][MAX_FILE_NAME_LEN]) {
+    if (path == NULL) return -1;  // 检查空指针
+    
+    char *p = (char *)path;
+    p = skip_slash(p);  // 跳过初始的 '/'
+    int i = 0;
+
+    while (*p != '\0' && i < MAX_FILE_NAME_LEN) {  // 检查数组边界
+        char *tmp = p;
+        while (*tmp != '/' && *tmp != '\0')  // 修正条件
+            ++tmp;
+
+        int len = tmp - p;
+        if (len >= MAX_FILE_NAME_LEN) len = MAX_FILE_NAME_LEN - 1;  // 防止单个部分过长
+
+        strncpy(token[i], p, len);  // 复制子字符串
+        token[i][len] = '\0';  // 确保字符串以 '\0' 结尾
+        ++i;
+
+        p = skip_slash(tmp);  // 跳过下一个 '/'
+    }
+
+    return i;  // 返回分割的部分数
+}
+
+static struct dirent *lookup_dirent(struct dirent *dir, const char *name) {
+  struct dirent *cdir = list_find(&dir->child, struct dirent, is_equal_dirent, name);
+  if (cdir == NULL)
+    find_dirent_entry(dir, name, &cdir);
+
+  return cdir;
+}
+
 static int walkDir(struct filesystem *fs, char *path, struct dirent *base_dir, struct dirent **dir,
                    struct dirent **file, char *lastElem, struct long_entry_set *longSet) {
-  struct dirent *tdir, *tfile;
-  char *p;
+  char token[MAX_FILE_NAME_LEN][MAX_FILE_NAME_LEN];
+  int token_size = parse_path(path, token);
 
-  if (path[0] == '/' || base_dir == NULL)
-    tdir = fs->root;
-  else
-    tdir= base_dir;
-  tfile = tdir;
-  path = skip_slash(path);
-  p = path;
-  *file = NULL;
+  struct dirent *cdir = base_dir == NULL ? fs->root : base_dir;
 
-  while(*path != '\0') {
-    char name[MAX_FILE_NAME_LEN];
-    path = p;
-
-    while(*p != '/' && *p != '\0')
-      ++p;
-
-    size_t name_len = p - path;
-    if (name_len > MAX_FILE_NAME_LEN)
-      return -E_BAD_PATH;
-    strncpy(name, path, name_len);
-
-    p = skip_slash(p);
-
-    if (tfile->type == DIR_FILE) {
-      // panic("dir not implemented");
-      if (*p == '\0' && strncmp(name, tfile->name, name_len) == 0) {
-        *file = tfile;
-        return 0;
-      } else
+  for (int i = 0 ; i < token_size; i++) {
+    struct dirent *cfile = lookup_dirent(cdir, token[i]);
+    if (cfile == NULL) {
+      if (i > 0) {
+        strncpy(lastElem, token[i], strlen(token[i]));
         return -E_NOT_FOUND;
-    }
-    if (strncmp(name, ".", 1) == 0) {
-      continue;
-    } else if (strncmp(name, "..", 2) == 0) {
-      tfile = tfile->parent;
-      continue;
-    } else {
-      tfile = list_find(&tfile->child, struct dirent, is_equal_dirent, name);
-      if (tfile == NULL)
-        return -E_NOT_FOUND;
-      else {
-        if (*p == '\0') {
-          *dir = tfile;
-          strncpy(lastElem, name, MAX_FILE_NAME_LEN);
-          return 0;
-        } else {
-          tdir = tfile;
-          continue;
-        }
       }
+    } else if (cfile->type == DIR_DIR) {
+      cdir = cfile;
+    } else if (cfile->type == DIR_FILE) {
+      if (i == token_size - 1) {
+        strncpy(lastElem, token[i-1], strlen(token[i-1]));
+        *file = cfile;
+        return 0;
+      }
+      strncpy(lastElem, token[i], strlen(token[i]));
+      return -E_NOT_FOUND;
+    } else {
+      // link not implement
     }
   }
   return 0;
 }
+
 bool createItemAt(struct dirent *base_dir, const char *path, struct dirent **file, mode_t mode, bool is_dir) {
   struct filesystem *fs;
 	char lastElem[MAX_FILE_NAME_LEN];
@@ -124,16 +258,8 @@ bool createItemAt(struct dirent *base_dir, const char *path, struct dirent **fil
   return false;
 }
 
-// static struct dirent *lookup_dirent(const char *path) {
-  // struct proc *p = cur_proc();
-  // struct dirent *base = NULL;
-  //
-  // if (path[0] == '/')
-//   panic("lookup_dirent");
-// }
-
 struct dirent *get_file(struct dirent *base_dir, const char *path) {
-  struct dirent *dirent;
+  struct dirent *dirent = NULL;
   struct filesystem *fs;
   struct long_entry_set longSet;
 

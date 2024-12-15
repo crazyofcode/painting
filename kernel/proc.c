@@ -39,7 +39,7 @@ static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_
   ASSERT((va & PGMASK) == 0);
   ASSERT(off % PGSIZE == 0);
 
-  file_seek(fd, off, SEEK_SET);
+  filesys_seek(cur_proc(), fd, off, SEEK_SET);
   while( bytes_read > 0 || bytes_zero > 0 ) {
     size_t page_read_bytes = bytes_read < PGSIZE ? bytes_read : PGSIZE;
     size_t page_zero_bytes = PGSIZE - page_read_bytes;
@@ -199,6 +199,7 @@ struct proc *process_create(void) {
   p->vruntime = 0;
   p->priority = FIRST;
   p->status   = INITIAL;
+  p->cwd      = NULL;
  
   p->parent = cur_proc();     // first proc should be NULL
   list_init(&p->child_list);
@@ -435,7 +436,7 @@ bool loader(const char *file) {
   ASSERT(ehdr.machine == EXPECT_TYPE);
 
   struct proghdr phdr[ehdr.phnum];
-  file_seek(fd, ehdr.phoff, SEEK_SET);
+  filesys_seek(p, fd, ehdr.phoff, SEEK_SET);
   size_t bytes_read = filesys_read(p, fd, (char *)phdr, sizeof (struct proghdr) * ehdr.phnum);
   ASSERT(bytes_read == sizeof(struct proghdr) * ehdr.phnum);
 
