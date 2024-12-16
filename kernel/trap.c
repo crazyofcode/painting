@@ -80,7 +80,7 @@ void kerneltrap(void) {
   // 如果是时钟中断
   // 当前运行的进程就会放弃 cpu 资源
   if (which_dev == 2 && cur_proc() != NULL)
-    yield();
+    // yield();
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.

@@ -7,12 +7,16 @@
 #include <macro.h>
 #include <string.h>
 #include <defs.h>
+#include <vfs.h>
+#include <schedule.h>
 
 #define FILL_INFO       40
 #define WSIZE           4
 #define PGSIZE          4096
 #define PROC_SIZE       ((sizeof(struct proc)) + 2 * ALIGN)
 #define TRAPFRAME_SIZE  ((sizeof(struct trapframe)) + 2 * ALIGN)
+#define RBNODE_SIZE     ((sizeof(struct rbNode)) + 2 * ALIGN)
+#define FILE_SIZE       ((sizeof(struct file)) + 2 * ALIGN)
 #define PACK(addr)      ((void *)((uint8_t *)addr + ALIGN))
 #define UNPACK(addr)    ((void *)((uint8_t *)addr - ALIGN))
 #define GET_SIZE(p)     (*((uint32_t *)(p)))
@@ -26,6 +30,8 @@
 
 static char *proc_heap_list;
 static char *trapframe_heap_list;
+static char *rb_heap_list;
+static char *file_heap_list;
 
 // 在对应的 list 找到空闲的空间
 static void *find_fit(char *list, size_t sz) {
@@ -114,6 +120,8 @@ free_page:
 void slab_init(void) {
   heap_list_init((void **)&proc_heap_list, 0);
   heap_list_init((void **)&trapframe_heap_list, 0);
+  heap_list_init((void **)&rb_heap_list, 0);
+  heap_list_init((void **)&file_heap_list, 0);
 }
 void *kalloc(size_t size, mode_t mode) {
   void *ptr = NULL;
@@ -128,12 +136,28 @@ void *kalloc(size_t size, mode_t mode) {
       place(bp, PROC_SIZE);
       return bp;
     case TRAPFRAME_MODE:
-      if ((bp = find_fit(trapframe_heap_list, PROC_SIZE)) == NULL) {
+      if ((bp = find_fit(trapframe_heap_list, TRAPFRAME_SIZE)) == NULL) {
         heap_list_init(&ptr, (void *)trapframe_heap_list);
         trapframe_heap_list = ptr;
         bp = ptr;
       }
-      place(bp, PROC_SIZE);
+      place(bp, TRAPFRAME_SIZE);
+      return bp;
+    case RB_MODE:
+      if ((bp = find_fit(rb_heap_list, RBNODE_SIZE)) == NULL) {
+        heap_list_init(&ptr, (void *)rb_heap_list);
+        rb_heap_list = ptr;
+        bp = ptr;
+      }
+      place(bp, RBNODE_SIZE);
+      return bp;
+    case FILE_MODE:
+      if ((bp = find_fit(file_heap_list, FILE_SIZE)) == NULL) {
+        heap_list_init(&ptr, (void *)file_heap_list);
+        file_heap_list = ptr;
+        bp = ptr;
+      }
+      place(bp, FILE_SIZE);
       return bp;
     default:
       // 对于非专用的内存大小

@@ -35,7 +35,7 @@ static int _flag2perm(int flag) {
 }
 
 static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_t bytes_read, size_t bytes_zero, int flag) {
-  ASSERT(((bytes_zero + bytes_read) & PGSIZE) == 0);
+  ASSERT(((bytes_zero + bytes_read) & PGMASK) == 0);
   ASSERT((va & PGMASK) == 0);
   ASSERT(off % PGSIZE == 0);
 
@@ -218,7 +218,8 @@ void run_first_task(void) {
   log("entry first task\n");
   ASSERT(intr_get());
   filesys_init();
-  process_execute("init", NULL);
+  if (process_execute("init", NULL))
+    usertrapret();
   sbi_shutdown();
 }
 bool process_execute(const char *_path, const char *argv[]) {
@@ -231,24 +232,26 @@ bool process_execute(const char *_path, const char *argv[]) {
     int argc;
     uint64_t sp = p->trapframe->sp;
     uint64_t stackbase = sp - PGSIZE;
-    for (argc = 0; argc < MAXARG; argc++) {
-      size_t len = strlen(argv[argc]) + 1;
-      sp -= len;
+    if (argv != NULL) {
+      for (argc = 0; argc < MAXARG; argc++) {
+        size_t len = strlen(argv[argc]) + 1;
+        sp -= len;
+        if (sp < stackbase)
+          goto bad;
+        if (copyout(p->pagetable, sp, argv[argc], len) < 0)
+          goto bad;
+        ustack[argc] = sp;
+      }
+      ustack[argc++] = 0;
+      uint64_t ptr_size = sizeof(uint64_t);
+      uint64_t align_len = (sp & 0x0f) + (0x10 - (argc*ptr_size & 0xf));
+      sp -= align_len;
+      sp -= argc * ptr_size;
       if (sp < stackbase)
         goto bad;
-      if (copyout(p->pagetable, sp, argv[argc], len) < 0)
+      if (copyout(p->pagetable, sp, (char *)ustack, argc * ptr_size) < 0)
         goto bad;
-      ustack[argc] = sp;
     }
-    ustack[argc++] = 0;
-    uint64_t ptr_size = sizeof(uint64_t);
-    uint64_t align_len = (sp & 0x0f) + (0x10 - (argc*ptr_size & 0xf));
-    sp -= align_len;
-    sp -= argc * ptr_size;
-    if (sp < stackbase)
-      goto bad;
-    if (copyout(p->pagetable, sp, (char *)ustack, argc * ptr_size) < 0)
-      goto bad;
 
     p->trapframe->a1 = sp;
     p->trapframe->a0 = argc-1;
@@ -354,8 +357,8 @@ void wakeup(void *chan) {
     acquire(&p->lock);
     if (p != cur && p->chan == chan) {
       p->status = RUNNABLE;
+      rb_push_back(p);
     }
-    rb_push_back(p);
     release(&p->lock);
   }
 }

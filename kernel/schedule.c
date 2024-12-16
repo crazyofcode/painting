@@ -325,7 +325,6 @@ void rb_init() {
 static struct rbNode *inorder(struct rbNode *root) {
   if (root == NIL)
     return NIL;
-  // log("root->left: %p\n", root->left);
   struct rbNode *ret = inorder(root->left);
   if (ret != NIL && ret->p->status == RUNNABLE)
     return ret;

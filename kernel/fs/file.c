@@ -20,6 +20,7 @@ struct filesystem *get_root_fs(void) {
 }
 // free fd
 void free_fd(int fd) {
+  fd -= 3;
   acquire(&fd_lock);
   if (fd >= 0 && fd < MAX_DIRENT) {
       fd_bitmap[fd >> 3] &= ~(1 << (fd & (~(0x07)))); // 释放该fd号，将该位设为0
@@ -34,7 +35,7 @@ int alloc_fd(void) {
       if ((fd_bitmap[i >> 8] & (1 << (i & (~(0x07))))) == 0) {
           fd_bitmap[i >> 8] |= (1 << (i & (~(0x07)))); // 设置该位为1，表示已分配
           release(&fd_lock);
-          return i;
+          return i+3;
       }
   }
   release(&fd_lock);

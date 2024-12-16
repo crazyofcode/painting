@@ -12,6 +12,7 @@
 #include <sleeplock.h>
 #include <buf.h>
 #include <pm.h>
+#include <dirent.h>
 
 #define   MAX_FS_NUM    10
 #define   FATDIR_PERM(entry) (*(char *)entry + SHORT_NAME_LEN)
@@ -73,21 +74,27 @@ static void fill_file_name(char *name, struct FAT32Directory *entry) {
 }
 
 // 创建目录项
-void match_dirent_entry(const char *name, struct dirent *parent, struct FAT32Directory *entry, uint32_t offset, struct dirent **lastDir) {
+static bool match_dirent_entry(const char *name, struct dirent *parent, struct FAT32Directory *entry, uint32_t offset,
+                        struct dirent **lastDir, const char *tname) {
   struct dirent *newDir = *lastDir;
   char _name[MAX_FILE_NAME_LEN];
 
-  fill_file_name(_name, entry);
+  if (tname[0] != '\0') {
+    strncpy(_name, tname, strlen(tname));
+  } else {
+    fill_file_name(_name, entry);
+  }
   if (strncmp(_name, name, strlen(name)))
-    return;
+    return false;
 
   newDir->filesystem = parent->filesystem;
   newDir->first_cluster = cal_cluster_pos(entry->dir_FstClusHI, entry->dir_FstClusLO);
   newDir->size = entry->dir_FileSize;
-  newDir->mode |= ((FATDIR_PERM(entry) & ATTR_DIRECTORY) ? ATTR_DIRECTORY : ATTR_FILE);
+  newDir->mode = entry->file_attribute;
   newDir->parent = parent;
   newDir->linkcnt = 1;
   newDir->parent->offset = offset;
+  newDir->type = newDir->mode & ATTR_DIRECTORY ? DIR_DIR : DIR_FILE;
 
   list_push_back(&parent->child, &newDir->elem);
   if (newDir->mode & ATTR_DIRECTORY)
@@ -96,6 +103,7 @@ void match_dirent_entry(const char *name, struct dirent *parent, struct FAT32Dir
   memcpy(newDir->name, name, strlen(name));
 
   log("%s\n", newDir->name);
+  return true;
 }
 
 // 解析簇中的目录项
@@ -104,6 +112,7 @@ static int parse_directory_entries(const char *name, struct dirent *parent, char
   char tname[MAX_FILE_NAME_LEN];
   int idx = 0;
 
+  memset(tname, 0, MAX_FILE_NAME_LEN);
   for (uint32_t i = 0; i < clusSize; i += DIRECTORY_SIZE) {
     struct FAT32Directory *entry = (struct FAT32Directory *)(buf + i);
 
@@ -122,9 +131,10 @@ static int parse_directory_entries(const char *name, struct dirent *parent, char
     }
 
     log("%s\n", tname);
-    match_dirent_entry(name, parent, entry, i, lastDir);
+    if (match_dirent_entry(name, parent, entry, i, lastDir, tname))
+      return 0;
   }
-  return 0;
+  return -E_NOT_FOUND;
 }
 
 static void find_dirent_entry(struct dirent *dir, const char *name, struct dirent **entry) {
@@ -196,43 +206,41 @@ static int parse_path(const char *path, char token[MAX_FILE_NAME_LEN][MAX_FILE_N
     return i;  // 返回分割的部分数
 }
 
-static struct dirent *lookup_dirent(struct dirent *dir, const char *name) {
-  struct dirent *cdir = list_find(&dir->child, struct dirent, is_equal_dirent, name);
-  if (cdir == NULL)
-    find_dirent_entry(dir, name, &cdir);
-
-  return cdir;
-}
-
 static int walkDir(struct filesystem *fs, char *path, struct dirent *base_dir, struct dirent **dir,
                    struct dirent **file, char *lastElem, struct long_entry_set *longSet) {
   char token[MAX_FILE_NAME_LEN][MAX_FILE_NAME_LEN];
   int token_size = parse_path(path, token);
 
+  struct dirent *cfile = dirent_alloc();
   struct dirent *cdir = base_dir == NULL ? fs->root : base_dir;
 
   for (int i = 0 ; i < token_size; i++) {
-    struct dirent *cfile = lookup_dirent(cdir, token[i]);
-    if (cfile == NULL) {
-      if (i > 0) {
-        strncpy(lastElem, token[i], strlen(token[i]));
-        return -E_NOT_FOUND;
-      }
-    } else if (cfile->type == DIR_DIR) {
+    struct dirent *tmp = list_find(&cdir->child, struct dirent, is_equal_dirent, token[i]);
+    if (tmp == NULL)
+      find_dirent_entry(cdir, token[i], &cfile);
+    else
+      memcpy(cfile, tmp, sizeof(struct dirent));
+
+    if (cfile->type == DIR_DIR) {
       cdir = cfile;
     } else if (cfile->type == DIR_FILE) {
       if (i == token_size - 1) {
-        strncpy(lastElem, token[i-1], strlen(token[i-1]));
-        *file = cfile;
+        if (lastElem)
+          strncpy(lastElem, token[i], strlen(token[i]));
+        memcpy(*file, cfile, sizeof (struct dirent) );
+        dirent_free(cfile);
         return 0;
       }
-      strncpy(lastElem, token[i], strlen(token[i]));
+      if (lastElem)
+        strncpy(lastElem, token[i], strlen(token[i]));
+      dirent_free(cfile);
       return -E_NOT_FOUND;
     } else {
       // link not implement
     }
   }
-  return 0;
+  dirent_free(cfile);
+  return -E_NOT_FOUND;
 }
 
 bool createItemAt(struct dirent *base_dir, const char *path, struct dirent **file, mode_t mode, bool is_dir) {
@@ -259,7 +267,7 @@ bool createItemAt(struct dirent *base_dir, const char *path, struct dirent **fil
 }
 
 struct dirent *get_file(struct dirent *base_dir, const char *path) {
-  struct dirent *dirent = NULL;
+  struct dirent *dirent = dirent_alloc();
   struct filesystem *fs;
   struct long_entry_set longSet;
 

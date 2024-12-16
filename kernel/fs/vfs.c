@@ -106,10 +106,13 @@ void filesys_seek(struct proc *p, int fd, off_t offset, int mode) {
   switch (mode) {
     case SEEK_SET:
       file->pos = offset;
+      break;
     case SEEK_CUR:
       file->pos += offset;
+      break;
     case SEEK_END:
       file->pos = file->dirent->size;
+      break;
     default:
       log("invalid mode\n");
       ASSERT(0);
