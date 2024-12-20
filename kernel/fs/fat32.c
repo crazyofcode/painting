@@ -13,7 +13,6 @@
 #include <riscv.h>
 #include <stdio.h>
 
-static uint8_t *cluster_bit_map;
 static void cluszero(struct filesystem *, uint32_t);
 // init
 // fill in superblock
@@ -36,17 +35,12 @@ static int clusinit(struct filesystem *fs) {
   // RootDirsectors = 0
   fs->sbinfo.first_data_sector = header->reserved_sectors + 
                                     header->number_fats * header->fat_size;
-  fs->sbinfo.data_sector_cnt = header->large_sector_count - 
+  fs->sbinfo.data_sector_cnt = header->large_sector_count -
                                   fs->sbinfo.first_data_sector;
-  fs->sbinfo.cluster_cnt = fs->sbinfo.data_sector_cnt *
+  fs->sbinfo.cluster_cnt = fs->sbinfo.data_sector_cnt /
                             header->sectors_per_cluster;
   fs->sbinfo.bytes_per_clus = header->bytes_per_sector *
                             header->sectors_per_cluster;
-
-  // cluster bitmap info
-  uint32_t len = fs->sbinfo.data_sector_cnt / 8;
-  cluster_bit_map = kalloc(sizeof(uint8_t) * len, DEFAULT);
-  memset(cluster_bit_map, 0, sizeof(uint8_t) * len);
 
   if (BSIZE != header->bytes_per_sector)
     return ERR;
@@ -142,21 +136,26 @@ void fatwrite(struct filesystem *fs, uint32_t clusterNo, uint32_t nextNo) {
 }
 
 uint32_t clusalloc(struct filesystem *fs, uint32_t prevNo) {
-  uint32_t len = fs->sbinfo.data_sector_cnt >> 8;
-  for (int i = 0; i < len; i++) {
-    if (cluster_bit_map[i] != 0xff) {
-      uint32_t nextNo = (i << 8) +
-        find_lowest_zero_bit(cluster_bit_map[i]);
-      cluster_bit_map[i] |= MASK(cluster_bit_map[i]);
+  uint32_t nextNo = 0;
+
+  // 从第一个簇开始遍历FAT表
+  for (nextNo = 2; nextNo < fs->sbinfo.cluster_cnt + 2; nextNo++) {
+    uint32_t fat_entry = fatread(fs, nextNo); // 读取FAT表中的当前簇状态
+    
+    // 检查当前簇是否空闲（FAT32_EOF表示簇为空闲）
+    if (fat_entry == 0) {
+      // 如果是空闲簇，更新FAT表，连接前一个簇
       if (prevNo != 0) {
-        fatwrite(fs, prevNo, nextNo);
+        fatwrite(fs, prevNo, nextNo);  // 写入前一个簇的FAT表项
       }
-      fatwrite(fs, nextNo, FAT32_EOF);
-      cluszero(fs, nextNo);
-      return nextNo + 2;
+      fatwrite(fs, nextNo, FAT32_EOF); // 标记当前簇为EOF
+      cluszero(fs, nextNo);            // 清空簇
+      return nextNo;
     }
   }
-  log("out of dat32 disk volume");
+
+  // 如果没有找到空闲簇
+  log("out of data cluster space");
   return 0;
 }
 
@@ -165,9 +164,6 @@ void clusfree(struct filesystem *fs, uint32_t clusNo, uint32_t prevNo) {
     fatwrite(fs, prevNo, FAT32_EOF);
   }
   fatwrite(fs, clusNo, 0);
-  uint32_t idx = (clusNo-2) >> 8;
-  uint32_t off = (clusNo-2) & (BIT_OFF);
-  cluster_bit_map[idx] &= (~(1 << off));
 }
 
 static void cluszero(struct filesystem *fs, uint32_t clusNo) {

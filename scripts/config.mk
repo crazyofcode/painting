@@ -1,9 +1,9 @@
 TOOLPREFIX = riscv64-linux-gnu-
 QEMU = qemu-system-riscv64
 
-OBJCOPY = $(TOOLPREFIX)objcopy
-OBJDUMP = $(TOOLPREFIX)objdump
-
+# OBJCOPY = $(TOOLPREFIX)objcopy
+# OBJDUMP = $(TOOLPREFIX)objdump
+#
 QEMUOPTS = -machine virt -cpu rv64 -kernel $T/kernel -m 512M -smp $(CPUS) -nographic
 QEMUOPTS += -bios default
 QEMUOPTS += -global virtio-mmio.force-legacy=false

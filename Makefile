@@ -61,12 +61,15 @@ $T/kernel: $(OBJS) $K/kernel.ld $T/$(FS_OBJ) # $U/initcode
 # 	$(OBJDUMP) -S $T/initcode.o > $T/initcode.asm
 
 qemu: $T/kernel
+	@cd user && make
 	$(QEMU)	$(QEMUOPTS)
 
 qemu-gdb: $T/kernel .gdbinit fs.img
+	@cd user && make
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 clean:
+	@cd user && make clean
 	rm -rf ./build
 PYTHON: clean
 

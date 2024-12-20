@@ -99,14 +99,6 @@ struct SubSuperBlockInfo {
 #define REM(x, y)   ((x) % (y))
 #define FATEntOffset(header, clusterNo) \
           REM(clusterNo * fat32_entry_size, header.bytes_per_sector)
-#define MASK(num)   (~(num) & (num + 1))
-#define find_lowest_zero_bit(num) ({ \
-    int pos = 0; \
-    while ((num) & (1 << pos)) { \
-        pos++; \
-    } \
-    pos; \
-})
 #define first_sector_clus(fs, cluster) \
           fs->sbinfo.first_data_sector + \
           (cluster - fs->superblock.cluster_root_directory) * \
