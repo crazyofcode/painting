@@ -231,7 +231,7 @@ virtio_disk_rw(struct buf *b, int write)
 
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
-  log("waiting for virtio_disk_intr say request has finished\n");
+  // log("waiting for virtio_disk_intr say request has finished\n");
   while(b->disk == 1) {
     __sync_synchronize();
   }
@@ -243,7 +243,7 @@ virtio_disk_rw(struct buf *b, int write)
 void
 virtio_disk_intr()
 {
-  log("entry virtio_disk_intr\n");
+  // log("entry virtio_disk_intr\n");
 
   // the device won't raise another interrupt until we tell it
   // we've seen this interrupt, which the following line does.

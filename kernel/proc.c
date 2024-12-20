@@ -35,6 +35,7 @@ static int _flag2perm(int flag) {
 }
 
 static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_t bytes_read, size_t bytes_zero, int flag) {
+  log("bytes_read: %x, bytes_zero: %x\n", bytes_read, bytes_zero);
   ASSERT(((bytes_zero + bytes_read) & PGMASK) == 0);
   ASSERT((va & PGMASK) == 0);
   ASSERT(off % PGSIZE == 0);
@@ -181,6 +182,7 @@ struct proc *process_create(void) {
 
   uint64_t pa = (uint64_t)kstack;
   uint64_t va = KSTACK(p->pid);
+  log("pid: %d, va: %p\n", p->pid, va);
   if (mappages(kernel_pagetable, va, pa, PGSIZE, PTE_R | PTE_W) != 0) {
     kpmfree(kstack);
     kpmfree(p);
@@ -194,6 +196,7 @@ struct proc *process_create(void) {
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64_t)usertrapret;
   p->context.sp = p->kstack + PGSIZE;
+  log("stack pointer: %p\n", p->kstack+PGSIZE);
 
   // Parameters to initialize the process structure
   p->vruntime = 0;
@@ -218,7 +221,8 @@ void run_first_task(void) {
   log("entry first task\n");
   ASSERT(intr_get());
   filesys_init();
-  if (process_execute("init", NULL))
+  const char *argv[] = {"init", NULL};
+  if (process_execute("init", argv))
     usertrapret();
   sbi_shutdown();
 }
@@ -232,26 +236,26 @@ bool process_execute(const char *_path, const char *argv[]) {
     int argc;
     uint64_t sp = p->trapframe->sp;
     uint64_t stackbase = sp - PGSIZE;
-    if (argv != NULL) {
-      for (argc = 0; argc < MAXARG; argc++) {
-        size_t len = strlen(argv[argc]) + 1;
-        sp -= len;
-        if (sp < stackbase)
-          goto bad;
-        if (copyout(p->pagetable, sp, argv[argc], len) < 0)
-          goto bad;
-        ustack[argc] = sp;
-      }
-      ustack[argc++] = 0;
-      uint64_t ptr_size = sizeof(uint64_t);
-      uint64_t align_len = (sp & 0x0f) + (0x10 - (argc*ptr_size & 0xf));
-      sp -= align_len;
-      sp -= argc * ptr_size;
+    for (argc = 0; argv[argc]; argc++) {
+      if (argc > MAXARG)
+        goto bad;
+      size_t len = strlen(argv[argc]) + 1;
+      sp -= len;
       if (sp < stackbase)
         goto bad;
-      if (copyout(p->pagetable, sp, (char *)ustack, argc * ptr_size) < 0)
+      if (copyout(p->pagetable, sp, argv[argc], len) < 0)
         goto bad;
+      ustack[argc] = sp;
     }
+    ustack[argc++] = 0;
+    uint64_t ptr_size = sizeof(uint64_t);
+    uint64_t align_len = (sp & 0x0f) + (0x10 - (argc*ptr_size & 0xf));
+    sp -= align_len;
+    sp -= argc * ptr_size;
+    if (sp < stackbase)
+      goto bad;
+    if (copyout(p->pagetable, sp, (char *)ustack, argc * ptr_size) < 0)
+      goto bad;
 
     p->trapframe->a1 = sp;
     p->trapframe->a0 = argc-1;
@@ -302,6 +306,8 @@ void init_first_proc(void) {
   struct proc *p = process_create();
   p->context.ra = (uint64_t)run_first_task;
   p->trapframe->a0 = 0;
+  p->trapframe->sp = PGSIZE;
+  p->trapframe->epc = 0;
   p->status = RUNNABLE;
   rb_push_back(p);
 }

@@ -11,7 +11,7 @@ struct buddy {
   struct buddy  *next;
 };
 
-struct buddy *buddy_list[MAX_LEVEL];
+static struct buddy *buddy_list[MAX_LEVEL];
 
 size_t next_pow_of_2(size_t nbytes) {
   if (is_pow_of_2(nbytes))
@@ -28,7 +28,7 @@ size_t next_pow_of_2(size_t nbytes) {
 
 static uint8_t level_of_bytes(size_t nbytes) {
   uint8_t level = 0;
-  while (nbytes)
+  while (nbytes > 1)
     ++level, nbytes = nbytes >> 1;
   return level;
 }
@@ -50,6 +50,8 @@ void *buddy_alloc(size_t sz) {
 
   uint8_t i;
   uint8_t level = level_of_bytes(sz);
+  if (level == MAX_LEVEL)
+    return kpmalloc();
   struct buddy *block = NULL;
   for (i = level; i < MAX_LEVEL; ++i) {
     if (buddy_list[i] != NULL) {
@@ -61,7 +63,7 @@ void *buddy_alloc(size_t sz) {
 
   if (block == NULL) {
     block = (struct buddy *)kpmalloc();
-    ASSERT_INFO(block != NULL, "buddy alloc page fault\n");
+    ASSERT_INFO(block != NULL, "buddy alloc page fail\n");
   }
 
   struct buddy *buddy;
@@ -79,6 +81,10 @@ void *buddy_alloc(size_t sz) {
 void buddy_free(void *addr) {
   struct buddy *block = (struct buddy *)addr;
   uint8_t       i = *(uint8_t *)addr;
+  if (i == MAX_LEVEL) {
+    kpmfree(addr);
+    return;
+  }
 
   struct buddy *buddy;
   struct buddy **list;

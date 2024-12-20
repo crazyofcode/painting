@@ -10,194 +10,212 @@
 #include <vfs.h>
 #include <schedule.h>
 
-#define FILL_INFO       40
-#define WSIZE           4
-#define PGSIZE          4096
-#define PROC_SIZE       ((sizeof(struct proc)) + 2 * ALIGN)
-#define TRAPFRAME_SIZE  ((sizeof(struct trapframe)) + 2 * ALIGN)
-#define RBNODE_SIZE     ((sizeof(struct rbNode)) + 2 * ALIGN)
-#define FILE_SIZE       ((sizeof(struct file)) + 2 * ALIGN)
-#define PACK(addr)      ((void *)((uint8_t *)addr + ALIGN))
-#define UNPACK(addr)    ((void *)((uint8_t *)addr - ALIGN))
-#define GET_SIZE(p)     (*((uint32_t *)(p)))
-#define GET_PREV_SIZE(p)(*((uint32_t *)(p) - WSIZE))
-#define GET_ALLOC(p)    (*((uint32_t *)(p)+WSIZE))
-#define HDRP(bp)        ((char *)(bp) - ALIGN)
-#define FTRP(bp)        ((char *)(bp) + GET_SIZE(HDRP(bp)) - 2 * ALIGN)
-#define NEXT_BLKP(bp)   ((char *)(bp) + GET_SIZE(HDRP(bp)))
-#define PREV_BLKP(bp)   ((char *)(bp) - GET_PREV_SIZE(HDRP(bp)))
-#define PUT(ptr, val)   (*(size_t *)(ptr) = val)
+#define WSIZE             4
+#define PGSIZE            4096
+#define PAGE_ALLOC_SIZE   (PGSIZE - 4 * ALIGN)
+#define ROUNDUP(a,x)      (((a)+(x)-1) & (~((x)-1)))
+#define PROC_SIZE         (ROUNDUP(sizeof (struct proc), WSIZE))
+#define TRAPFRAME_SIZE    (ROUNDUP(sizeof (struct trapframe), WSIZE))
+#define RBNODE_SIZE       (ROUNDUP(sizeof (struct rbNode), WSIZE))
+#define FILE_SIZE         (ROUNDUP(sizeof (struct file), WSIZE))
+#define PROC_BLOCK_NUM    (PAGE_ALLOC_SIZE / (PROC_SIZE))
+#define FRAME_BLOCK_NUM   (PAGE_ALLOC_SIZE / (TRAPFRAME_SIZE))
+#define RB_BLOCK_SIZE     (PAGE_ALLOC_SIZE / (RBNODE_SIZE))
+#define FILE_BLOCK_SIZE   (PAGE_ALLOC_SIZE / (FILE_SIZE))
+#define PACK(ptr,lev)     ((uint64_t)(ptr) | (lev))
+#define UNPACK(addr)      (*(uint64_t *)(addr) & (~0xff))
+#define GET_LEVEL(addr)   (*(uint64_t *)(addr) & 0xff)
+#define PUT(bp,val,type)  (*(type *)(bp) = val);
+#define GET(bp,type)      (*(type *)(bp));
+#define HDRP(bp)          ((void *)((uint8_t *)(bp)-ALIGN))
+#define FTRP(bp)          ((void *)((uint8_t *)(bp)+ALIGN))
+#define find_lowest_zero_bit(num, width) ({ \
+    int pos = 0; \
+    while ((num) & (1 << pos)) { \
+        pos++; \
+        if (pos > width) {  \
+          pos = -1;         \
+          break;            \
+        }                   \
+    } \
+    pos; \
+})
+struct blockret {
+  void      *list;
+  uint32_t  off;
+} ;
 
 static char *proc_heap_list;
 static char *trapframe_heap_list;
 static char *rb_heap_list;
 static char *file_heap_list;
 
-// 在对应的 list 找到空闲的空间
-static void *find_fit(char *list, size_t sz) {
-  void *bp;
-  for (bp = list; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-    if ((!GET_ALLOC(HDRP(bp))) && GET_SIZE(HDRP(bp)) >= sz)
-      return bp;
+static void init_bitmap_helper(char *ptr, uint32_t block_num) {
+  uint32_t block_num_align = block_num >> 3;
+  uint32_t i;
+  for (i = 0; i < MIN(block_num_align, 8); i++) {
+    PUT(ptr+i, 0, char);
   }
-  return NULL;
-}
-
-static void place(void *bp, size_t sz) {
-  size_t csize = GET_SIZE(HDRP(bp));
-
-  if ((csize - sz) >= 2*ALIGN) {
-    PUT(HDRP(bp), sz);
-    PUT(HDRP(bp)+WSIZE, 1);
-    PUT(FTRP(bp), sz);
-    PUT(FTRP(bp)+WSIZE, 1);
-
-    bp = NEXT_BLKP(bp);
-
-    PUT(HDRP(bp), csize - sz);
-    PUT(HDRP(bp)+WSIZE, 0);
-    PUT(FTRP(bp), csize - sz);
-    PUT(FTRP(bp)+WSIZE, 0);
-  } else {
-    PUT(HDRP(bp), csize);
-    PUT(HDRP(bp)+WSIZE, 1);
-    PUT(FTRP(bp), csize);
-    PUT(FTRP(bp)+WSIZE, 1);
+  char mask = (1 << (block_num & 0x07)) - 1;
+  char val = 0xff & (~mask);
+  PUT(ptr+i, val, char);
+  // 其余的 bit 需要置为1
+  for (i = i + 1; i < 16; i++) {
+    PUT(ptr+i, 1, char);
   }
 }
 
-static void heap_list_init(void **heap_list, void *prev) {
-  void *ptr = PACK(buddy_alloc(PGSIZE));
-  PUT(ptr, (uint64_t)prev);
-  if (prev != NULL)
-    PUT(prev + PGSIZE - FILL_INFO - ALIGN, (uint64_t)ptr);
-  *heap_list = PACK(PACK(ptr));
-  PUT(HDRP(*heap_list), PGSIZE - FILL_INFO);
-  PUT(HDRP(*heap_list) + WSIZE, 0);
-  PUT(FTRP(*heap_list), PGSIZE - FILL_INFO);
-  PUT(FTRP(*heap_list) + WSIZE, 0);
-}
-
-static void coalesce(void *ptr, void *addr) {
-  size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(addr)));
-  size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(addr)));
-  size_t size = GET_SIZE(HDRP(addr));
-
-  if (prev_alloc && next_alloc) {
-    return;
-  } else if (prev_alloc && !next_alloc) {
-    size += GET_SIZE(HDRP(NEXT_BLKP(addr)));
-    PUT(HDRP(addr), size);
-    PUT(HDRP(addr)+WSIZE, 0);
-    PUT(FTRP(addr), size);
-    PUT(FTRP(addr)+WSIZE, 0);
-  } else if (!prev_alloc && next_alloc) {
-    size += GET_SIZE(HDRP(PREV_BLKP(addr)));
-    PUT(HDRP(addr), size);
-    PUT(HDRP(addr)+WSIZE, 0);
-    PUT(FTRP(addr), size);
-    PUT(FTRP(addr)+WSIZE, 0);
-  } else {
-    size += (GET_SIZE(HDRP(NEXT_BLKP(addr))) + GET_SIZE(FTRP(PREV_BLKP(addr))));
-    if (size == PGSIZE - FILL_INFO) {
-      addr = PREV_BLKP(addr);
-      goto free_page;
-    } else {
-      PUT(HDRP(addr), size);
-      PUT(HDRP(addr)+WSIZE, 0);
-      PUT(FTRP(addr), size);
-      PUT(FTRP(addr)+WSIZE, 0);
+static struct blockret get_block_index_helper(char *bp, char *list, uint32_t block_size) {
+  while (true) {
+    if (bp >= list && bp < (list + PAGE_ALLOC_SIZE))
+      break;
+    else {
+      uint64_t val;
+      val = GET(list+PAGE_ALLOC_SIZE, uint64_t);
+      list = (char *)UNPACK(val);
     }
   }
-  return;
-free_page:
-  void *prev_ptr = UNPACK(UNPACK(addr));
-  void *next_ptr = addr + PGSIZE - FILL_INFO - ALIGN;
-  PUT(UNPACK(next_ptr), (uint64_t)prev_ptr);
-  buddy_free(UNPACK(UNPACK(UNPACK(addr))));
+  uint32_t off = (uint32_t)(bp - list) / block_size;
+  return (struct blockret){.list = list, .off = off};
+}
+// 在对应的 list 找到空闲的空间
+static void *find_match_space(char *list, size_t size) {
+  uint64_t free_bitmap;
+  uint64_t  free_bitmap_extend;
+
+  free_bitmap = GET(HDRP(HDRP(list)), uint64_t);
+  free_bitmap_extend = GET(HDRP(list), uint64_t);
+
+  uint32_t off = 0;
+  if (free_bitmap == (uint64_t)(-1)) {
+    if (free_bitmap_extend == (uint64_t)(-1))
+      return NULL;
+    else
+      off = find_lowest_zero_bit(free_bitmap_extend, 64);
+    free_bitmap_extend |= (1 << off);
+    off += 64;
+  } else {
+    off = find_lowest_zero_bit(free_bitmap, 64);
+    free_bitmap |= (1 << off);
+  }
+
+  PUT(HDRP(list), free_bitmap_extend, uint64_t);
+  PUT(HDRP(HDRP(list)), free_bitmap, uint64_t);
+  return list + off * size;
+}
+
+static void heap_list_init(void **heap_list, void *prev, uint32_t num) {
+  void *ptr = buddy_alloc(PGSIZE);
+  uint8_t level = *(uint8_t *)ptr;
+  PUT(ptr, PACK(prev, level), uint64_t);
+  if (prev != NULL)
+    PUT(prev+PAGE_ALLOC_SIZE, PACK(ptr, level), uint64_t);
+  ptr = FTRP(ptr);
+  init_bitmap_helper(ptr, num);
+  *heap_list = FTRP(FTRP(ptr));
 }
 
 void slab_init(void) {
-  heap_list_init((void **)&proc_heap_list, 0);
-  heap_list_init((void **)&trapframe_heap_list, 0);
-  heap_list_init((void **)&rb_heap_list, 0);
-  heap_list_init((void **)&file_heap_list, 0);
+  log("proc size: %x, trapframe size: %x, rb size: %x, file size: %x\n", PROC_SIZE,
+      TRAPFRAME_SIZE, RBNODE_SIZE, FILE_SIZE);
+  heap_list_init((void **)&proc_heap_list, 0, PROC_BLOCK_NUM);
+  heap_list_init((void **)&trapframe_heap_list, 0, FRAME_BLOCK_NUM);
+  heap_list_init((void **)&rb_heap_list, 0, RB_BLOCK_SIZE);
+  heap_list_init((void **)&file_heap_list, 0, FILE_BLOCK_SIZE);
 }
 void *kalloc(size_t size, mode_t mode) {
+  void *bp  = NULL;
   void *ptr = NULL;
-  void *bp = NULL;
-  switch(mode) {
+  switch (mode) {
     case PROC_MODE:
-      if ((bp = find_fit(proc_heap_list, PROC_SIZE)) == NULL) {
-        heap_list_init(&ptr, proc_heap_list);
+      if ((bp = find_match_space(proc_heap_list, PROC_SIZE)) == NULL) {
+        heap_list_init(&ptr, (void *)proc_heap_list, PROC_BLOCK_NUM);
         proc_heap_list = ptr;
-        bp = ptr;
+        bp = find_match_space(proc_heap_list, PROC_SIZE);
       }
-      place(bp, PROC_SIZE);
       return bp;
     case TRAPFRAME_MODE:
-      if ((bp = find_fit(trapframe_heap_list, TRAPFRAME_SIZE)) == NULL) {
-        heap_list_init(&ptr, (void *)trapframe_heap_list);
+      if ((bp = find_match_space(trapframe_heap_list, TRAPFRAME_SIZE)) == NULL) {
+        heap_list_init(&ptr, (void *)trapframe_heap_list, FRAME_BLOCK_NUM);
         trapframe_heap_list = ptr;
-        bp = ptr;
+        bp = find_match_space(trapframe_heap_list, TRAPFRAME_SIZE);
       }
-      place(bp, TRAPFRAME_SIZE);
       return bp;
     case RB_MODE:
-      if ((bp = find_fit(rb_heap_list, RBNODE_SIZE)) == NULL) {
-        heap_list_init(&ptr, (void *)rb_heap_list);
+      if ((bp = find_match_space(rb_heap_list, RBNODE_SIZE)) == NULL) {
+        heap_list_init(&ptr, (void *)rb_heap_list, RB_BLOCK_SIZE);
         rb_heap_list = ptr;
-        bp = ptr;
+        bp = find_match_space(rb_heap_list, RBNODE_SIZE);
       }
-      place(bp, RBNODE_SIZE);
       return bp;
     case FILE_MODE:
-      if ((bp = find_fit(file_heap_list, FILE_SIZE)) == NULL) {
-        heap_list_init(&ptr, (void *)file_heap_list);
+      if ((bp = find_match_space(file_heap_list, FILE_SIZE)) == NULL) {
+        heap_list_init(&ptr, (void *)file_heap_list, FILE_BLOCK_SIZE);
         file_heap_list = ptr;
-        bp = ptr;
+        bp = find_match_space(file_heap_list, FILE_SIZE);
       }
-      place(bp, FILE_SIZE);
       return bp;
     default:
-      // 对于非专用的内存大小
-      // 直接使用 buddy_alloc
       size_t sz = next_pow_of_2(size);
       ptr = buddy_alloc(sz);
-      return PACK(ptr);
+      return FTRP(ptr);
   }
-}
-
-void *realloc(void *ptr, size_t size, mode_t mode) {
-  void *nptr = kalloc(size, mode);
-  memcpy(nptr, ptr, GET_SIZE(HDRP(ptr)));
-  kfree(ptr, mode);
-  return nptr;
 }
 
 void kfree(void *addr, mode_t mode) {
   if (addr == NULL) {
-    log("kfree: addr is NULL\n");
+    log("warning: Trying to free a null pointer\n");
     return;
   }
-  void *ptr;
+  char *list;
+  size_t size;
   switch (mode) {
     case PROC_MODE:
-      ptr = proc_heap_list;
+      list = proc_heap_list;
+      size = PROC_SIZE;
       goto do_free;
     case TRAPFRAME_MODE:
-      ptr = trapframe_heap_list;
+      list = trapframe_heap_list;
+      size = TRAPFRAME_SIZE;
+      goto do_free;
+    case RB_MODE:
+      list = rb_heap_list;
+      size = RBNODE_SIZE;
+      goto do_free;
+    case FILE_MODE:
+      list = file_heap_list;
+      size = FILE_SIZE;
       goto do_free;
     default:
-      void *ptr = UNPACK(addr);
-      buddy_free(ptr);
+      uint8_t level = GET(HDRP(addr), uint8_t);
+      size = 1 << level;
+      memset(addr, 0xc, size);
+      buddy_free(HDRP(addr));
       return;
   }
+
+  // 对于 slab cache 的内存块实际释放的操作
 do_free:
-  size_t sz = GET_SIZE(HDRP(addr));
-  PUT(HDRP(addr), sz);
-  PUT(HDRP(addr)+WSIZE, 0);
-  PUT(FTRP(addr), sz);
-  PUT(FTRP(addr)+WSIZE, 0);
-  coalesce(ptr, addr);
+  memset(addr, 0xc, size);
+  struct blockret ret = get_block_index_helper(addr, list, mode);
+  if (ret.off >= 64) {
+    uint64_t val = GET(HDRP(ret.list), uint64_t);
+    val &= (~(1 << (ret.off - 64)));
+    PUT(HDRP(ret.list), val, uint64_t);
+  } else {
+    uint64_t val = GET(HDRP(HDRP(ret.list)), uint64_t);
+    val &= (~(1 << ret.off));
+    PUT(HDRP(HDRP(ret.list)), val, uint64_t);
+  }
+  uint64_t val1 = GET(HDRP(HDRP(ret.list)), uint64_t);
+  uint64_t val2 = GET(HDRP(ret.list), uint64_t);
+  uint64_t prev_val = GET(HDRP(HDRP(HDRP(ret.list))), uint64_t);
+  uint64_t next_val = GET(ret.list+PAGE_ALLOC_SIZE, uint64_t);
+  if (val1 == (uint64_t)(-1) && val2 == (uint64_t)(-1)) {
+    void *prev = (void *)UNPACK(prev_val);
+    void *next = (void *)UNPACK(next_val);
+    PUT(prev+PAGE_ALLOC_SIZE, next_val, uint64_t);
+    PUT(HDRP(HDRP(HDRP(next))), prev_val, uint64_t);
+    buddy_free(HDRP(HDRP(HDRP(ret.list))));
+  }
 }

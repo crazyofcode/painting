@@ -80,7 +80,7 @@ void kerneltrap(void) {
   // 如果是时钟中断
   // 当前运行的进程就会放弃 cpu 资源
   if (which_dev == 2 && cur_proc() != NULL)
-    // yield();
+    yield();
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
@@ -166,5 +166,7 @@ void usertrapret(void) {
   uint64_t satp = MAKE_SATP(p->pagetable);
 
   uint64_t trampoline_user_ret = TRAMPOLINE + (userret - trampoline);
+  log("kernel_sp: %p, kernel_trap: %p, epc: %p, satp: %p\n", p->trapframe->kernel_sp, p->trapframe->kernel_trap,
+      p->trapframe->epc, satp);
   ((void (*)(uint64_t))trampoline_user_ret)(satp);
 }
