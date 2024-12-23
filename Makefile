@@ -41,7 +41,7 @@ OBJS = \
 -include ./scripts/config.mk
 
 $T/%.o: $K/%.S
-	$(CC) $(ASFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $T/%.o: $K/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -97,6 +97,7 @@ struct proc {
   struct context      context;
   struct sleeplock *  chan;
   struct dirent *     cwd;
+  uint64_t            heap_start;
 
   // debug
   char                name[MAXLEN];

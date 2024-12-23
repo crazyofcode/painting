@@ -7,6 +7,7 @@
 #include <defs.h>
 #include <riscv.h>
 #include <schedule.h>
+#include <memlayout.h>
 
 #define NEW_NODE(p) ({           \
         struct rbNode *node = kalloc(sizeof(struct rbNode), RB_MODE);    \

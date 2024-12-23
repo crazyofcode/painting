@@ -14,7 +14,7 @@ void            sleep(void *, struct spinlock*);
 void            wakeup(void *);
 bool            loader(const char *);
 void            sched(void);
-void            process_exit(void);
+void            process_exit(uint64_t) __noreturn;
 
 // kalloc.c
 void            slab_init(void);

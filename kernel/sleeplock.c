@@ -2,6 +2,7 @@
 #include <param.h>
 #include <spinlock.h>
 #include <list.h>
+#include <macro.h>
 #include <defs.h>
 #include <proc.h>
 #include <sleeplock.h>

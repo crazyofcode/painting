@@ -18,11 +18,15 @@ LDFLAGS = -z max-page-size=4096
 $(shell mkdir -p $(TAR))
 
 UPROGS = \
-						$(TAR)/init
+						$(TAR)/init\
+						$(TAR)/initcode
 
 ULIB = $(TAR)/lib.o
 
 $(TAR)/%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TAR)/%.o: %.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TAR)/%: $(TAR)/%.o $(ULIB)
@@ -34,13 +38,15 @@ $(TAR)/%: $(TAR)/%.o $(ULIB)
 fs.img: $(UPROGS)
 	@if [ ! -f "../fs.img" ]; then \
 		echo "making fs image..."; \
-		dd if=/dev/zero of=fs.img bs=512k count=512; \
-		mkfs.vfat -s 8 -F 32 fs.img; fi
+		dd if=/dev/zero of=fs.img bs=1M count=512; \
+		mkfs.vfat -F 32 fs.img;	\
+		mv fs.img	../; fi
 	@sudo mount ../fs.img ../mnt
 	@for file in $(UPROGS); do \
 		sudo cp $$file ../mnt/`basename $$file`;\
-		echo "Copied `basename $$file` to $(MNT)"; \
+		echo "Copied `basename $$file` to fs.img"; \
 	done
+	@sudo cp text.txt ../mnt/
 	@sudo umount ../mnt
 
 clean: 

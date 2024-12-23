@@ -102,7 +102,6 @@ static bool match_dirent_entry(const char *name, struct dirent *parent, struct F
 
   memcpy(newDir->name, name, strlen(name));
 
-  log("%s\n", newDir->name);
   return true;
 }
 
@@ -130,7 +129,6 @@ static int parse_directory_entries(const char *name, struct dirent *parent, char
       continue;
     }
 
-    log("%s\n", tname);
     if (match_dirent_entry(name, parent, entry, i, lastDir, tname))
       return 0;
   }
@@ -380,4 +378,33 @@ int filewrite(struct dirent *file, uint64_t src, uint32_t off, uint32_t n) {
   }
 
   return len;
+}
+
+char buf[8192];
+void fat32Test() {
+	// 测试读取文件
+	struct dirent *file = get_file(NULL, "/text.txt");
+	ASSERT(file);
+	ASSERT(fileread(file, (uint64_t)buf, 0, file->size) >= 0);
+	printf("%s\n", buf);
+
+	// 测试写入文件
+	char *str = "Hello! I\'m "
+		    "zrp!"
+		    "\n3233333333233333333233333333233333333233333333233333333233333333233333333233"
+		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
+		    "233333333233333333222222222233233333333233333333233333333233333333233333333233"
+		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
+		    "233333333233333333222222222233233333333233333333233333333233333333233333333233"
+		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
+		    "233333333233333333222222222233233333333233333333233333333233333333233333333233"
+		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
+		    "23333333323333333322222222222222222222222222\n This is end!";
+	int len = strlen(str) + 1;
+	ASSERT(filewrite(file, (uint64_t)str, 0, len) >= 0);
+
+	// 读出文件
+	ASSERT(fileread(file, (uint64_t)buf, 0, file->size) >= 0);
+  ASSERT(strncmp(buf, str, strlen(str)) == 0);
+	log("FAT32 Test Passed!\n");
 }

@@ -5,12 +5,12 @@
 #include <spinlock.h>
 #include <riscv.h>
 #include <proc.h>
+#include <macro.h>
 #include <defs.h>
 #include <vm.h>
 #include <pm.h>
 #include <string.h>
 #include <trap.h>
-#include <macro.h>
 #include <stdio.h>
 #include <file.h>
 #include <buddy.h>
@@ -35,7 +35,6 @@ static int _flag2perm(int flag) {
 }
 
 static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_t bytes_read, size_t bytes_zero, int flag) {
-  log("bytes_read: %x, bytes_zero: %x\n", bytes_read, bytes_zero);
   ASSERT(((bytes_zero + bytes_read) & PGMASK) == 0);
   ASSERT((va & PGMASK) == 0);
   ASSERT(off % PGSIZE == 0);
@@ -66,13 +65,17 @@ static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_
   return true;
 }
 
-static bool setup_stack(pagetable_t pagetable, uint64_t frame, uint64_t *sp) {
+static bool setup_stack(pagetable_t pagetable, uint64_t *sp) {
   void *pa = kpmalloc();
-  if (mappages(pagetable, frame, (uint64_t)pa, PGSIZE, PTE_R | PTE_W | PTE_U) < 0) {
+  if (pa == NULL) {
+    log("kpmalloc failed\n");
+    return false;
+  }
+  if (mappages(pagetable, PHYSTOP-PGSIZE, (uint64_t)pa, PGSIZE, PTE_R | PTE_W | PTE_U) < 0) {
     kpmfree(pa);
     return false;
   }
-  *sp = frame + PGSIZE;
+  *sp = PHYSTOP;
   return true;
 }
 
@@ -182,7 +185,6 @@ struct proc *process_create(void) {
 
   uint64_t pa = (uint64_t)kstack;
   uint64_t va = KSTACK(p->pid);
-  log("pid: %d, va: %p\n", p->pid, va);
   if (mappages(kernel_pagetable, va, pa, PGSIZE, PTE_R | PTE_W) != 0) {
     kpmfree(kstack);
     kpmfree(p);
@@ -196,7 +198,6 @@ struct proc *process_create(void) {
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64_t)usertrapret;
   p->context.sp = p->kstack + PGSIZE;
-  log("stack pointer: %p\n", p->kstack+PGSIZE);
 
   // Parameters to initialize the process structure
   p->vruntime = 0;
@@ -221,9 +222,12 @@ void run_first_task(void) {
   log("entry first task\n");
   ASSERT(intr_get());
   filesys_init();
-  const char *argv[] = {"init", NULL};
-  if (process_execute("init", argv))
+  extern void fat32Test();
+  fat32Test();
+  const char *argv[] = {"initcode", NULL};
+  if (process_execute("initcode", argv)) {
     usertrapret();
+  }
   sbi_shutdown();
 }
 bool process_execute(const char *_path, const char *argv[]) {
@@ -266,7 +270,8 @@ bad:
   return false;
 }
 
-void process_exit(void) {
+void process_exit(uint64_t state) {
+  printf("exit state: %d\n", state);
   panic("process_exit not implemented");
 }
 
@@ -390,7 +395,7 @@ struct elfhdr {
   uint16_t shentsize;
   uint16_t shnum;
   uint16_t shstrndx;
-};
+} __packed;
 
 // Program section header
 struct proghdr {
@@ -402,7 +407,7 @@ struct proghdr {
   uint64_t filesz;
   uint64_t memsz;
   uint64_t align;
-};
+} __packed;
 
 // Values for Proghdr type
 #define PT_LOAD           1
@@ -473,7 +478,8 @@ bool loader(const char *file) {
     sz = mem_page + bytes_read + bytes_zero;
   }
   filesys_close(p, fd);
-  if (!setup_stack(p->pagetable, sz, &p->trapframe->sp))
+  p->heap_start = sz;
+  if (!setup_stack(p->pagetable, &p->trapframe->sp))
     goto done;
   p->trapframe->epc = ehdr.entry;
   success = true;

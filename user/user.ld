@@ -1,5 +1,4 @@
 OUTPUT_ARCH( "riscv" )
-ENTRY(main)
 
 SECTIONS
 {

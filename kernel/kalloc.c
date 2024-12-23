@@ -116,8 +116,6 @@ static void heap_list_init(void **heap_list, void *prev, uint32_t num) {
 }
 
 void slab_init(void) {
-  log("proc size: %x, trapframe size: %x, rb size: %x, file size: %x\n", PROC_SIZE,
-      TRAPFRAME_SIZE, RBNODE_SIZE, FILE_SIZE);
   heap_list_init((void **)&proc_heap_list, 0, PROC_BLOCK_NUM);
   heap_list_init((void **)&trapframe_heap_list, 0, FRAME_BLOCK_NUM);
   heap_list_init((void **)&rb_heap_list, 0, RB_BLOCK_SIZE);

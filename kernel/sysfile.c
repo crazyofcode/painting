@@ -23,12 +23,12 @@ static void transtr(uint64_t addr, char *buf, uint64_t size, bool direction) {
   if (direction) {
     if (copyin(cur_proc()->pagetable, buf, addr, size) < 0) {
       log("copy data from user to kernel fault\n");
-      process_exit();
+      process_exit(-1);
     }
   } else {
     if (copyout(cur_proc()->pagetable, addr, buf, size) < 0) {
       log("copy data from user to kernel fault\n");
-      process_exit();
+      process_exit(-1);
     }
   }
 }

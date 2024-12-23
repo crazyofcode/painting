@@ -10,5 +10,7 @@ uint64_t      sys_create(void);
 uint64_t      sys_write(void);
 uint64_t      sys_read(void);
 uint64_t      sys_open(void);
+uint64_t      sys_exit(void) __noreturn;
+uint64_t      sys_exec(void);
 
 #endif // !SYSCALL_H__

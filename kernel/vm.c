@@ -40,10 +40,11 @@ pagetable_t kvmmake(void) {
   // kernel data and the physical RAM
   kvmmap(kpgtbl, (uint64_t)etext, (uint64_t)etext, PHYSTOP - (uint64_t)etext, PTE_W | PTE_R);
   // trampoine
-  kvmmap(kpgtbl, TRAMPOLINE, (uint64_t)trampoline, PGSIZE, PTE_R | PTE_W);
+  kvmmap(kpgtbl, TRAMPOLINE, (uint64_t)trampoline, PGSIZE, PTE_R | PTE_X);
 
   return kpgtbl;
 }
+
 void kvminit(void) {
   kernel_pagetable = kvmmake();
 }

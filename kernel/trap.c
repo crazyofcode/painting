@@ -6,9 +6,9 @@
 #include <trap.h>
 #include <list.h>
 #include <proc.h>
+#include <macro.h>
 #include <defs.h>
 #include <schedule.h>
-#include <macro.h>
 #include <stdio.h>
 #include <timer.h>
 #include <plic.h>
@@ -70,6 +70,16 @@ void kerneltrap(void) {
   if (intr_get() != 0)
     panic("kerneltrap->interrupt enabled");
 
+  if (r_scause() == 0xc) {
+    uint32_t inst;
+    uint64_t pc = r_stval();
+    asm volatile("lw %0, 0(%1)"
+                 : "=r"(inst)       // 输出约束：将装载的值存入 inst
+                 : "r"(pc)          // 输入约束：提供 pc 作为地址
+                 :                  // 无需声明破坏寄存器
+    );
+    printf("pc: %p, inst: %x\n", pc, inst);
+  }
   int which_dev = 0;
   which_dev = dev_intr();
   if (which_dev == 0) {
@@ -108,7 +118,6 @@ usertrap(void)
   
   // save user program counter.
   p->trapframe->epc = r_sepc();
-  log("r_sepc: 0x%x\n", r_sepc());
   
   if(r_scause() == 8){
     // system call
@@ -166,7 +175,5 @@ void usertrapret(void) {
   uint64_t satp = MAKE_SATP(p->pagetable);
 
   uint64_t trampoline_user_ret = TRAMPOLINE + (userret - trampoline);
-  log("kernel_sp: %p, kernel_trap: %p, epc: %p, satp: %p\n", p->trapframe->kernel_sp, p->trapframe->kernel_trap,
-      p->trapframe->epc, satp);
   ((void (*)(uint64_t))trampoline_user_ret)(satp);
 }
