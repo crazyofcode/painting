@@ -21,13 +21,13 @@
                                         == (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID))
 static struct filesystem fs[MAX_FS_NUM];
 
-static bool is_equal_dirent(struct dirent *entry, const char *arg) {
-  if (strncmp(entry->name, arg, strlen(arg)) == 0) {
-    return true;
-  } else {
-    return false;
-  }
-}
+// static bool is_equal_dirent(struct dirent *entry, const char *arg) {
+//   if (strncmp(entry->name, arg, strlen(arg)) == 0) {
+//     return true;
+//   } else {
+//     return false;
+//   }
+// }
 
 // 读取簇内容
 static void read_multiple_cluster(struct filesystem *fs, uint64_t clusNo, char *buf, uint32_t size) {
@@ -84,6 +84,7 @@ static bool match_dirent_entry(const char *name, struct dirent *parent, struct F
   } else {
     fill_file_name(_name, entry);
   }
+  log("file name: %s\n", _name);
   if (strncmp(_name, name, strlen(name)))
     return false;
 
@@ -131,6 +132,9 @@ static int parse_directory_entries(const char *name, struct dirent *parent, char
 
     if (match_dirent_entry(name, parent, entry, i, lastDir, tname))
       return 0;
+
+    idx = 0;
+    memset(tname, 0, MAX_FILE_NAME_LEN);
   }
   return -E_NOT_FOUND;
 }
@@ -147,6 +151,10 @@ static void find_dirent_entry(struct dirent *dir, const char *name, struct diren
 
     if (result == -1) {
       break;  // 到达文件尾或无效簇
+    }
+    if (result == 0) {
+      log("find %s\n", name);
+      break;
     }
 
     clusNo = fatread(fs, clusNo);  // 获取下一个簇号
@@ -213,7 +221,9 @@ static int walkDir(struct filesystem *fs, char *path, struct dirent *base_dir, s
   struct dirent *cdir = base_dir == NULL ? fs->root : base_dir;
 
   for (int i = 0 ; i < token_size; i++) {
-    struct dirent *tmp = list_find(&cdir->child, struct dirent, is_equal_dirent, token[i]);
+    struct dirent *tmp = NULL;
+    // if (cdir->type == DIR_DIR)
+    //   tmp = list_find(&cdir->child, struct dirent, is_equal_dirent, token[i]);
     if (tmp == NULL)
       find_dirent_entry(cdir, token[i], &cfile);
     else
@@ -360,7 +370,7 @@ int filewrite(struct dirent *file, uint64_t src, uint32_t off, uint32_t n) {
 
   uint64_t start = off;
   uint64_t end   = off + n - 1;
-  uint32_t clus_num = (end - start) % CLUSTER_SIZE(fs);
+  uint32_t clus_num = ROUNDUP(end-start, CLUSTER_SIZE(fs)) / CLUSTER_SIZE(fs);
   uint32_t offset = off % CLUSTER_SIZE(fs);
   uint64_t clus = file_get_clusNo(file, start / CLUSTER_SIZE(fs));
   if (FAT32_isEOF(clus))
@@ -371,7 +381,7 @@ int filewrite(struct dirent *file, uint64_t src, uint32_t off, uint32_t n) {
   len += MIN(n, CLUSTER_SIZE(fs) - offset);
   clus = fatread(file->filesystem, clus);
 
-  for (int i = 0; i < clus_num; i++) {
+  for (int i = 1; i < clus_num; i++) {
     cluswrite(file->filesystem, clus, offset, src, MIN(n - len, CLUSTER_SIZE(fs)));
     len += MIN(n - len, CLUSTER_SIZE(fs));
     clus = fatread(file->filesystem, clus);
@@ -389,17 +399,7 @@ void fat32Test() {
 	printf("%s\n", buf);
 
 	// 测试写入文件
-	char *str = "Hello! I\'m "
-		    "zrp!"
-		    "\n3233333333233333333233333333233333333233333333233333333233333333233333333233"
-		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
-		    "233333333233333333222222222233233333333233333333233333333233333333233333333233"
-		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
-		    "233333333233333333222222222233233333333233333333233333333233333333233333333233"
-		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
-		    "233333333233333333222222222233233333333233333333233333333233333333233333333233"
-		    "333333233333333233333333233333333233333333233333333233333333233333333233333333"
-		    "23333333323333333322222222222222222222222222\n This is end!";
+	char *str = "Hello! I\'m zrp!3233333333233333333233333333233333333233333333233333333233333333233333333233";
 	int len = strlen(str) + 1;
 	ASSERT(filewrite(file, (uint64_t)str, 0, len) >= 0);
 

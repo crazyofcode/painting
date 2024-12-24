@@ -180,7 +180,7 @@ virtio_disk_rw(struct buf *b, int write)
     if(alloc3_desc(idx) == 0) {
       break;
     }
-    panic("no free queue");
+    panic("no free desc");
   }
 
   // format the three descriptors.
@@ -231,7 +231,7 @@ virtio_disk_rw(struct buf *b, int write)
 
   *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0; // value is queue number
 
-  // log("waiting for virtio_disk_intr say request has finished\n");
+  // Wait for virtio_disk_intr() to say request has finished.
   while(b->disk == 1) {
     __sync_synchronize();
   }
@@ -262,8 +262,10 @@ virtio_disk_intr()
     __sync_synchronize();
     int id = disk.used->ring[disk.used_idx % NUM].id;
 
-    if(disk.info[id].status != 0)
+    if(disk.info[id].status != 0) {
+      log("disk id: %d, status: %d\n", id, disk.info[id].status);
       panic("virtio_disk_intr status");
+    }
 
     struct buf *b = disk.info[id].b;
     b->disk = 0;   // disk is done with buf

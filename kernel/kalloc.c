@@ -13,7 +13,6 @@
 #define WSIZE             4
 #define PGSIZE            4096
 #define PAGE_ALLOC_SIZE   (PGSIZE - 4 * ALIGN)
-#define ROUNDUP(a,x)      (((a)+(x)-1) & (~((x)-1)))
 #define PROC_SIZE         (ROUNDUP(sizeof (struct proc), WSIZE))
 #define TRAPFRAME_SIZE    (ROUNDUP(sizeof (struct trapframe), WSIZE))
 #define RBNODE_SIZE       (ROUNDUP(sizeof (struct rbNode), WSIZE))

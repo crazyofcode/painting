@@ -38,6 +38,7 @@
 
 #define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
+#define ROUNDUP(a,x)   (((a)+(x)-1) & (~((x)-1)))
 
 #define ASSERT(condition) \
   extern void panic(const char *) __noreturn; \
