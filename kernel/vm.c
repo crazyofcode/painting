@@ -231,3 +231,18 @@ int copyin(pagetable_t pagetable, char *dst, uint64_t src, uint64_t len) {
   }
   return 0;
 }
+
+void vmprint(pagetable_t pgtbl, int level) {
+  if (level > 2)
+    return;
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pgtbl[i];
+    if (pte & PTE_V) {
+      for (int j = level; j; j--) {
+        printf(".. ");
+      }
+      printf("..%d: pte %p pa %p\n", i, pte, (pagetable_t)PTE2PA(pte));
+      vmprint((pagetable_t)PTE2PA(pte), level+1);
+    }
+  }
+}

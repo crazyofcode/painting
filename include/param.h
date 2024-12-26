@@ -23,7 +23,6 @@
 
 // kalloc mode
 #define     PROC_MODE           (1 << 1)
-#define     TRAPFRAME_MODE      (1 << 2)
 #define     RB_MODE             (1 << 3)
 #define     FILE_MODE           (1 << 4)
 #define     DEFAULT             (1 << 5)

@@ -13,6 +13,7 @@
 #include <timer.h>
 #include <plic.h>
 #include <virt.h>
+#include <syscall.h>
 
 uint32_t ticks;
 struct spinlock tickslock;
@@ -133,7 +134,7 @@ usertrap(void)
     // so enable only now that we're done with those registers.
     intr_on();
 
-    // syscall();
+    syscall();
   } else if((which_dev = dev_intr()) != 0){
     // ok
   } else {

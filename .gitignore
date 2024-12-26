@@ -58,3 +58,6 @@ fs.img
 
 run.sh
 tags
+
+*/*.txt
+*.py

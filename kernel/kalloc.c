@@ -14,11 +14,9 @@
 #define PGSIZE            4096
 #define PAGE_ALLOC_SIZE   (PGSIZE - 4 * ALIGN)
 #define PROC_SIZE         (ROUNDUP(sizeof (struct proc), WSIZE))
-#define TRAPFRAME_SIZE    (ROUNDUP(sizeof (struct trapframe), WSIZE))
 #define RBNODE_SIZE       (ROUNDUP(sizeof (struct rbNode), WSIZE))
 #define FILE_SIZE         (ROUNDUP(sizeof (struct file), WSIZE))
 #define PROC_BLOCK_NUM    (PAGE_ALLOC_SIZE / (PROC_SIZE))
-#define FRAME_BLOCK_NUM   (PAGE_ALLOC_SIZE / (TRAPFRAME_SIZE))
 #define RB_BLOCK_SIZE     (PAGE_ALLOC_SIZE / (RBNODE_SIZE))
 #define FILE_BLOCK_SIZE   (PAGE_ALLOC_SIZE / (FILE_SIZE))
 #define PACK(ptr,lev)     ((uint64_t)(ptr) | (lev))
@@ -45,7 +43,6 @@ struct blockret {
 } ;
 
 static char *proc_heap_list;
-static char *trapframe_heap_list;
 static char *rb_heap_list;
 static char *file_heap_list;
 
@@ -116,7 +113,6 @@ static void heap_list_init(void **heap_list, void *prev, uint32_t num) {
 
 void slab_init(void) {
   heap_list_init((void **)&proc_heap_list, 0, PROC_BLOCK_NUM);
-  heap_list_init((void **)&trapframe_heap_list, 0, FRAME_BLOCK_NUM);
   heap_list_init((void **)&rb_heap_list, 0, RB_BLOCK_SIZE);
   heap_list_init((void **)&file_heap_list, 0, FILE_BLOCK_SIZE);
 }
@@ -129,13 +125,6 @@ void *kalloc(size_t size, mode_t mode) {
         heap_list_init(&ptr, (void *)proc_heap_list, PROC_BLOCK_NUM);
         proc_heap_list = ptr;
         bp = find_match_space(proc_heap_list, PROC_SIZE);
-      }
-      return bp;
-    case TRAPFRAME_MODE:
-      if ((bp = find_match_space(trapframe_heap_list, TRAPFRAME_SIZE)) == NULL) {
-        heap_list_init(&ptr, (void *)trapframe_heap_list, FRAME_BLOCK_NUM);
-        trapframe_heap_list = ptr;
-        bp = find_match_space(trapframe_heap_list, TRAPFRAME_SIZE);
       }
       return bp;
     case RB_MODE:
@@ -170,10 +159,6 @@ void kfree(void *addr, mode_t mode) {
     case PROC_MODE:
       list = proc_heap_list;
       size = PROC_SIZE;
-      goto do_free;
-    case TRAPFRAME_MODE:
-      list = trapframe_heap_list;
-      size = TRAPFRAME_SIZE;
       goto do_free;
     case RB_MODE:
       list = rb_heap_list;

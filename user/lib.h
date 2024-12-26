@@ -8,6 +8,8 @@ typedef unsigned long size_t;
 
 #define STDOUT    1
 
+int      main(int, char **);
+
 uint64_t write(int, char *, size_t);
 uint64_t exec(const char *, const char **);
 void     exit(int);

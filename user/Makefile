@@ -11,6 +11,10 @@ CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
+CFLAGS += -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset
+CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero
+CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
+CFLAGS += -fno-builtin-free
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 LDFLAGS = -z max-page-size=4096
@@ -21,7 +25,9 @@ UPROGS = \
 						$(TAR)/init\
 						$(TAR)/initcode
 
-ULIB = $(TAR)/lib.o
+ULIB = $(TAR)/lib.o \
+			 $(TAR)/entry.o	\
+			 $(TAR)/start.o
 
 $(TAR)/%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

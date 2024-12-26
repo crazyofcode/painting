@@ -169,7 +169,7 @@ struct proc *process_create(void) {
   if (p == NULL) {
     return NULL;
   }
-  p->trapframe = (struct trapframe *)kalloc(sizeof(struct trapframe), TRAPFRAME_MODE);
+  p->trapframe = kpmalloc();
   if (p->trapframe == NULL) {
     kfree(p, PROC_MODE);
     return NULL;

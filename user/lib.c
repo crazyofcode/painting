@@ -11,3 +11,4 @@ uint64_t exec(const char *file, const char *argv[]) {
 void exit(int state) {
   syscall(SYS_exit, state);  // 使用系统调用退出程序
 }
+

@@ -13,4 +13,5 @@ uint64_t      sys_open(void);
 uint64_t      sys_exit(void) __noreturn;
 uint64_t      sys_exec(void);
 
+void          syscall(void);
 #endif // !SYSCALL_H__
