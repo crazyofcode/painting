@@ -1,9 +1,7 @@
-#include "start.h"
-#include "lib.h"
+#include <start.h>
+#include <lib.h>
 
-void start(long *p) {
-	int argc = p[0];
-	char **argv = (void *)(p + 1);
+void start(int argc, char *argv[]) {
 	int ret = main(argc, argv);
 	exit(ret);
 }

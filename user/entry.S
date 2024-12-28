@@ -1,4 +1,4 @@
-#include "start.h"
+#include <start.h>
 
 .section .text
 .global entry

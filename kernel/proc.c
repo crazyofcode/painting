@@ -34,35 +34,8 @@ static int _flag2perm(int flag) {
   return perm;
 }
 
-static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, size_t bytes_read, size_t bytes_zero, int flag) {
-  ASSERT(((bytes_zero + bytes_read) & PGMASK) == 0);
-  ASSERT((va & PGMASK) == 0);
-  ASSERT(off % PGSIZE == 0);
-
-  filesys_seek(cur_proc(), fd, off, SEEK_SET);
-  while( bytes_read > 0 || bytes_zero > 0 ) {
-    size_t page_read_bytes = bytes_read < PGSIZE ? bytes_read : PGSIZE;
-    size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
-    void *pa = kpmalloc();
-    if (mappages(pagetable, va, (uint64_t)pa, PGSIZE, flag | PTE_R | PTE_U) < 0) {
-      kpmfree(pa);
-      return false;
-    }
-
-    if (filesys_read(cur_proc(), fd, (char *)pa, page_read_bytes) != page_read_bytes) {
-      kpmfree(pa);
-      return false;
-    }
-
-    memset(pa + page_read_bytes, 0, page_zero_bytes);
-
-    bytes_read -= page_read_bytes;
-    bytes_zero -= page_zero_bytes;
-    va += PGSIZE;
-  }
-
-  return true;
+static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, uint64_t filesz, uint64_t memsz,
+                    int flag, uint64_t *free_page_ptr) {
 }
 
 static bool setup_stack(pagetable_t pagetable, uint64_t *sp) {
@@ -224,8 +197,13 @@ void run_first_task(void) {
   filesys_init();
   extern void fat32Test();
   fat32Test();
-  const char *argv[] = {"initcode", NULL};
-  if (process_execute("initcode", argv)) {
+  const char *argv[] = {"init", NULL};
+  if (process_execute("init", argv)) {
+    // struct proc *p = cur_proc();
+    // pte_t *pte = walk(p->pagetable, p->trapframe->epc, 0);
+    // uint64_t pa = (uint64_t)PTE2PA(*pte);
+    // uint32_t inst = *(uint32_t *)(pa + p->trapframe->epc);
+    // printf("va: %p, inst: %x\n", p->trapframe->epc, inst);
     usertrapret();
   }
   sbi_shutdown();
@@ -421,7 +399,6 @@ bool loader(const char *file) {
   bool success = false;
   uint64_t  sz = 0;
   struct proc *p = cur_proc();
-  size_t bytes_zero;
   char path[strlen(file) + 1];
   strncpy(path, file, strlen(file));
   int fd = filesys_open(p, path, 0);
@@ -454,6 +431,7 @@ bool loader(const char *file) {
   size_t bytes_read = filesys_read(p, fd, (char *)phdr, sizeof (struct proghdr) * ehdr.phnum);
   ASSERT(bytes_read == sizeof(struct proghdr) * ehdr.phnum);
 
+  uint64_t free_page_ptr = 0;
   for (int i = 0; i < ehdr.phnum; i++) {
     if(phdr[i].type != PT_LOAD)
       continue;
@@ -461,24 +439,15 @@ bool loader(const char *file) {
       goto done;
     if(phdr[i].vaddr + phdr[i].memsz < phdr[i].vaddr)
       goto done;
-
-    size_t page_offset = phdr[i].vaddr & PGMASK;
-    uint64_t  file_page = phdr[i].off & ~PGMASK;
-    uint64_t  mem_page  = phdr[i].vaddr & ~PGMASK;
-    if (phdr[i].filesz > 0) {
-      bytes_read = page_offset + phdr[i].filesz;
-      bytes_zero = PGROUNDUP(page_offset + phdr[i].memsz) - bytes_read;
-    } else {
-      bytes_read = 0;
-      bytes_zero = PGROUNDUP(page_offset + phdr[i].memsz);
-    }
-
-    if (!loadseg(p->pagetable, fd, file_page, mem_page, bytes_read, bytes_zero, _flag2perm(phdr[i].flags)))
+    if ((phdr[i].vaddr & PGMASK) != 0)
       goto done;
-    sz = mem_page + bytes_read + bytes_zero;
+
+    if (!loadseg(p->pagetable, fd, phdr[i].off, phdr[i].vaddr, phdr[i].filesz, phdr[i].memsz, _flag2perm(phdr[i].flags), &free_page_ptr))
+      goto done;
+    sz = phdr[i].vaddr + phdr[i].memsz;
   }
   filesys_close(p, fd);
-  p->heap_start = sz;
+  p->heap_start = PGROUNDUP(sz);
   if (!setup_stack(p->pagetable, &p->trapframe->sp))
     goto done;
   p->trapframe->epc = ehdr.entry;

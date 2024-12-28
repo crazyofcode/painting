@@ -36,7 +36,8 @@ OBJS = \
 			 $T/vfs.o\
 			 $T/syscall.o\
 			 $T/sysproc.o\
-			 $T/sysfile.o
+			 $T/sysfile.o\
+			 $T/uvm.o
 
 -include ./scripts/config.mk
 

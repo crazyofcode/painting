@@ -81,3 +81,46 @@ kpmalloc(void) {
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+void * kpm_multiple_alloc(int page_num) {
+  struct run *r;
+
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  for (int i = 0; i < page_num; i++) {
+    if (r)
+      kmem.freelist = kmem.freelist->next;
+    else {
+      kmem.freelist = r;
+      r = NULL;
+      break;
+    }
+  }
+  release(&kmem.lock);
+
+  if (r)
+    memset((char *)r, 5, PGSIZE * page_num);
+  return (void *)r;
+}
+
+void kpm_multiple_free(void *pa, int page_num) {
+  struct run *r;
+  struct run *tmp;
+
+  if(((uint64_t)pa % PGSIZE) != 0 || (char*)pa < end || (uint64_t)pa >= PHYSTOP)
+    panic("kpmfree");
+
+  // Fill with junk to catch dangling refs.
+  memset(pa, 1, PGSIZE * page_num);
+
+  r = (struct run*)pa;
+  tmp = r;
+
+  acquire(&kmem.lock);
+  for (int i = 0; i < page_num; i++) {
+    tmp = tmp->next;
+  }
+  tmp->next = kmem.freelist;
+  kmem.freelist = r;
+  release(&kmem.lock);
+}

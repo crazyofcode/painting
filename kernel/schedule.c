@@ -343,7 +343,6 @@ static struct rbNode *find_next_proc() {
 }
 
 void  yield() {
-  log("entry yield....\n");
   struct proc *p = cur_proc();
   acquire(&p->lock);
   p->status = RUNNABLE;

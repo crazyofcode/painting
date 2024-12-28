@@ -30,15 +30,22 @@ uint64_t sys_getpid(void) {
 
 uint64_t sys_exec(void) {
   uint64_t ufile, uargv;
+  uint64_t uaddr;
   argaddr(&ufile, 0);
   argaddr(&uargv, 1);
 
   char path[MAXLEN];
-  char argv[MAXARG][MAXLEN];
+  static char argv[MAXARG][MAXLEN];
 
   transtr(ufile, path, MAXLEN, true);
-  transtr(uargv, argv[0], MAXLEN, true);
-  memset(argv[1], 0, MAXLEN);
+  for (int i = 0; i < MAXARG; i++) {
+    transtr(uargv + sizeof (uint64_t) * i, (char *)&uaddr, sizeof(uint64_t), true);
+    if (uaddr == 0) {
+      memset(argv[i], 0, MAXLEN);
+      break;
+    }
+    transtr(uaddr, argv[i], MAXLEN, true);
+  }
 
   if (process_execute(path, (const char **)argv))
     return 0;

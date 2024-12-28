@@ -1,7 +1,7 @@
 #ifdef START_H__
 #define START_H__
 
-void     start(long *);
+void     start(int, char **);
 
 #endif // START_H__
 

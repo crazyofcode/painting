@@ -188,28 +188,30 @@ static char *skip_slash(char *path) {
 }
 
 static int parse_path(const char *path, char token[MAX_FILE_NAME_LEN][MAX_FILE_NAME_LEN]) {
-    if (path == NULL) return -1;  // 检查空指针
-    
-    char *p = (char *)path;
-    p = skip_slash(p);  // 跳过初始的 '/'
-    int i = 0;
+  if (path == NULL) return -1;  // 检查空指针
+  
+  char *p = (char *)path;
+  p = skip_slash(p);  // 跳过初始的 '/'
+  int i = 0;
 
-    while (*p != '\0' && i < MAX_FILE_NAME_LEN) {  // 检查数组边界
-        char *tmp = p;
-        while (*tmp != '/' && *tmp != '\0')  // 修正条件
-            ++tmp;
+  while (i < MAX_FILE_NAME_LEN) {  // 检查数组边界
+    if (strlen(p) == 0)
+      break;
+    char *tmp = p;
+    while (*tmp != '/' && *tmp != '\0')  // 修正条件
+      ++tmp;
 
-        int len = tmp - p;
-        if (len >= MAX_FILE_NAME_LEN) len = MAX_FILE_NAME_LEN - 1;  // 防止单个部分过长
+    int len = tmp - p;
+    if (len >= MAX_FILE_NAME_LEN) len = MAX_FILE_NAME_LEN - 1;  // 防止单个部分过长
 
-        strncpy(token[i], p, len);  // 复制子字符串
-        token[i][len] = '\0';  // 确保字符串以 '\0' 结尾
-        ++i;
+    strncpy(token[i], p, len);  // 复制子字符串
+    token[i][len] = '\0';  // 确保字符串以 '\0' 结尾
+    ++i;
 
-        p = skip_slash(tmp);  // 跳过下一个 '/'
-    }
+    p = skip_slash(tmp);  // 跳过下一个 '/'
+  }
 
-    return i;  // 返回分割的部分数
+  return i;  // 返回分割的部分数
 }
 
 static int walkDir(struct filesystem *fs, char *path, struct dirent *base_dir, struct dirent **dir,

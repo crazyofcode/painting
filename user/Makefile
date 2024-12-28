@@ -15,6 +15,7 @@ CFLAGS += -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-bui
 CFLAGS += -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero
 CFLAGS += -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc
 CFLAGS += -fno-builtin-free
+CFLAGS += -I./include
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 LDFLAGS = -z max-page-size=4096
@@ -22,12 +23,12 @@ LDFLAGS = -z max-page-size=4096
 $(shell mkdir -p $(TAR))
 
 UPROGS = \
-						$(TAR)/init\
-						$(TAR)/initcode
+						$(TAR)/init
 
 ULIB = $(TAR)/lib.o \
 			 $(TAR)/entry.o	\
-			 $(TAR)/start.o
+			 $(TAR)/start.o	\
+			 $(TAR)/stdio.o
 
 $(TAR)/%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -37,9 +38,9 @@ $(TAR)/%.o: %.S
 
 $(TAR)/%: $(TAR)/%.o $(ULIB)
 	$(LD) $(LDFLAGS) -T ./user.ld -o $@ $^
-	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -S $@ > $(TAR)/$*.asm
 	$(OBJDUMP) -t $@ \
-		| sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+		| sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(TAR)/$*.sym
 
 fs.img: $(UPROGS)
 	@if [ ! -f "../fs.img" ]; then \
