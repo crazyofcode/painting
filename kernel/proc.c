@@ -7,6 +7,7 @@
 #include <proc.h>
 #include <macro.h>
 #include <defs.h>
+#include <uvm.h>
 #include <vm.h>
 #include <pm.h>
 #include <string.h>
@@ -35,7 +36,31 @@ static int _flag2perm(int flag) {
 }
 
 static bool loadseg(pagetable_t pagetable, int fd, off_t off, uint64_t va, uint64_t filesz, uint64_t memsz,
-                    int flag, uint64_t *free_page_ptr) {
+                    int flag, uint64_t oldsz) {
+  uint64_t newsz = va + memsz;
+  uint64_t bytes_read;
+  uint64_t pa;
+  struct proc *p = cur_proc();
+
+  if ((newsz = uvmalloc(pagetable, oldsz, newsz, flag)) == 0) {
+    uvmfree(pagetable, oldsz);
+    return 0;
+  }
+
+  filesys_seek(p, fd, off, SEEK_SET);
+  for (uint64_t i = 0; i < memsz; i += PGSIZE) {
+    pa = walkaddr(pagetable, va + i);
+    if (memsz - i < PGSIZE)
+      bytes_read = memsz - i;
+    else
+      bytes_read = PGSIZE;
+    ASSERT_INFO(filesys_read(p, fd, (char *)pa, bytes_read) == bytes_read, "filesys_read elf file fault");
+  }
+
+  pa = walkaddr(pagetable, va + filesz);
+  memset((void *)pa, 0, memsz - filesz);
+
+  return newsz;
 }
 
 static bool setup_stack(pagetable_t pagetable, uint64_t *sp) {
@@ -431,7 +456,6 @@ bool loader(const char *file) {
   size_t bytes_read = filesys_read(p, fd, (char *)phdr, sizeof (struct proghdr) * ehdr.phnum);
   ASSERT(bytes_read == sizeof(struct proghdr) * ehdr.phnum);
 
-  uint64_t free_page_ptr = 0;
   for (int i = 0; i < ehdr.phnum; i++) {
     if(phdr[i].type != PT_LOAD)
       continue;
@@ -442,7 +466,7 @@ bool loader(const char *file) {
     if ((phdr[i].vaddr & PGMASK) != 0)
       goto done;
 
-    if (!loadseg(p->pagetable, fd, phdr[i].off, phdr[i].vaddr, phdr[i].filesz, phdr[i].memsz, _flag2perm(phdr[i].flags), &free_page_ptr))
+    if ((sz = loadseg(p->pagetable, fd, phdr[i].off, phdr[i].vaddr, phdr[i].filesz, phdr[i].memsz, _flag2perm(phdr[i].flags), sz)) < 0)
       goto done;
     sz = phdr[i].vaddr + phdr[i].memsz;
   }

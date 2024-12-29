@@ -194,7 +194,7 @@ uint32_t clusread(struct filesystem *fs, uint32_t clusNo, uint32_t offset
   brelse(b);
   if (len == n) return len;
   read_len += len;
-  for (; read_len < n; secNo++) {
+  for (secNo = secNo + 1; read_len < n; secNo++) {
     len = MIN(fs->superblock.bytes_per_sector, n - read_len);
     b = bread(fs->deviceNum, secNo);
     memcpy((void *)dst + read_len, b->data, len);
@@ -221,7 +221,7 @@ uint32_t cluswrite(struct filesystem *fs, uint32_t clusNo, uint32_t offset
   brelse(b);
   if (len == n) return len;
   write_len += len;
-  for (; write_len < n; secNo++) {
+  for (secNo = secNo + 1; write_len < n; secNo++) {
     len = MIN(fs->superblock.bytes_per_sector, n - write_len);
     b = bread(fs->deviceNum, secNo);
     memcpy(b->data, (void *)src + write_len, len);

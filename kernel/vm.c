@@ -123,42 +123,6 @@ kvminithart()
   sfence_vma();
 }
 
-// Remove npages of mappings starting from va. va must be
-// page-aligned. The mappings must exist.
-// Optionally free the physical memory.
-void
-uvmunmap(pagetable_t pagetable, uint64_t va, uint64_t npages, int do_free)
-{
-  uint64_t a;
-  pte_t *pte;
-
-  if((va % PGSIZE) != 0)
-    panic("uvmunmap: not aligned");
-
-  for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
-    if((pte = walk(pagetable, a, 0)) == 0)
-      panic("uvmunmap: walk");
-    if((*pte & PTE_V) == 0)
-      panic("uvmunmap: not mapped");
-    if(PTE_FLAGS(*pte) == PTE_V)
-      panic("uvmunmap: not a leaf");
-    if(do_free){
-      pagetable_t pa = PTE2PA(*pte);
-      kpmfree((void*)pa);
-    }
-    *pte = 0;
-  }
-}
-
-// alloc a page for user
-pagetable_t uvmcreate(void) {
-  pagetable_t pagetable = (pagetable_t)kpmalloc();
-  if (pagetable == 0)
-    return 0;
-  memset(pagetable, 0, PGSIZE);
-  return pagetable;
-}
-
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
 void
@@ -177,13 +141,6 @@ freewalk(pagetable_t pagetable)
     }
   }
   kpmfree((void*)pagetable);
-}
-
-void uvmfree(pagetable_t pagetable, uint64_t sz) {
-  if (sz > 0)
-    uvmunmap(pagetable, 0, PGROUNDUP(sz) / PGSIZE, 1);
-  // 取消 pagetable 所保存的所有条目的映射
-  freewalk(pagetable);
 }
 
 int copyout(pagetable_t pagetable, uint64_t dst, const char *src, uint64_t len) {
