@@ -98,6 +98,7 @@ struct proc {
   struct sleeplock *  chan;
   struct dirent *     cwd;
   uint64_t            heap_start;
+  uint64_t            heap_end;
 
   // debug
   char                name[MAXLEN];

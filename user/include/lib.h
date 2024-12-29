@@ -12,8 +12,14 @@ typedef unsigned long size_t;
 int      main(int, char **);
 
 uint64_t write(int, char *, size_t);
-uint64_t exec(const char *, const char **);
+uint64_t exec(const char *, char **);
 void     exit(int);
 int      fork(void);
 int      wait(int);
+void *   sbrk(uint32_t);
+int      open(char *, int);
+void     close(int);
+int      dup(int);
+int      pipe(int*);
+int      chdir(const char*);
 #endif //! __LIB_H__

@@ -23,12 +23,15 @@ LDFLAGS = -z max-page-size=4096
 $(shell mkdir -p $(TAR))
 
 UPROGS = \
-						$(TAR)/init
+						$(TAR)/init	\
+						$(TAR)/sh
 
 ULIB = $(TAR)/lib.o \
 			 $(TAR)/entry.o	\
 			 $(TAR)/start.o	\
-			 $(TAR)/stdio.o
+			 $(TAR)/stdio.o	\
+			 $(TAR)/string.o	\
+			 $(TAR)/stdlib.o
 
 $(TAR)/%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

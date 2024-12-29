@@ -472,6 +472,7 @@ bool loader(const char *file) {
   }
   filesys_close(p, fd);
   p->heap_start = PGROUNDUP(sz);
+  p->heap_end   = PGROUNDUP(sz);
   if (!setup_stack(p->pagetable, &p->trapframe->sp))
     goto done;
   p->trapframe->epc = ehdr.entry;
