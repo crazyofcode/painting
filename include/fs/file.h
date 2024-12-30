@@ -1,6 +1,8 @@
 #ifndef FILE_H__
 #define FILE_H__
 
+#include "../../user/include/fcntl.h"
+
 #define   SEEK_SET    0
 #define   SEEK_CUR    1
 #define   SEEK_END    2

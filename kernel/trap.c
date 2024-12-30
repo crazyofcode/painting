@@ -71,16 +71,6 @@ void kerneltrap(void) {
   if (intr_get() != 0)
     panic("kerneltrap->interrupt enabled");
 
-  if (r_scause() == 0xc) {
-    uint32_t inst;
-    uint64_t pc = r_stval();
-    asm volatile("lw %0, 0(%1)"
-                 : "=r"(inst)       // 输出约束：将装载的值存入 inst
-                 : "r"(pc)          // 输入约束：提供 pc 作为地址
-                 :                  // 无需声明破坏寄存器
-    );
-    printf("pc: %p, inst: %x\n", pc, inst);
-  }
   int which_dev = 0;
   which_dev = dev_intr();
   if (which_dev == 0) {
@@ -90,8 +80,10 @@ void kerneltrap(void) {
 
   // 如果是时钟中断
   // 当前运行的进程就会放弃 cpu 资源
-  if (which_dev == 2 && cur_proc() != NULL)
+  if (which_dev == 2 && cur_proc() != NULL) {
+    cur_proc()->vruntime += 100;
     yield();
+  }
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
@@ -147,8 +139,10 @@ usertrap(void)
   //   exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2 && cur_proc() != NULL)
+  if(which_dev == 2 && cur_proc() != NULL) {
+    cur_proc()->vruntime += 100;
     yield();
+  }
 
   usertrapret();
 }

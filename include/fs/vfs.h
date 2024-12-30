@@ -19,6 +19,9 @@ off_t     filesys_read(struct proc *, int, char *, size_t);
 off_t     filesys_write(struct proc *, int, char *, size_t);
 bool      filesys_remove(struct proc *, char *);
 void      filesys_seek(struct proc *, int, off_t, int);
-bool      filesys_link(char *, char *, int);
+bool      filesys_link(struct proc *, char *, char *);
+void      filesys_unlink(struct proc *p, char *);
 
+/*struct file *filesys_deny_write(struct proc *, int);*/
+/*void         filesys_allow_write(struct file *);*/
 #endif // !VFS_H__

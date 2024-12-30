@@ -24,7 +24,7 @@ static struct file *find_file(struct list *list, int fd) {
 }
 
 bool filesys_create(struct proc *p, char *path, mode_t mode) {
-  struct dirent *base = p->cwd;
+  struct dirent *base = p->cwd ? p->cwd->dirent : NULL;
   struct dirent *file = dirent_alloc();
   ASSERT_INFO(file != NULL, "alloc dirent fault");
   if (!file_create(base, path, mode, file)) {
@@ -36,7 +36,7 @@ bool filesys_create(struct proc *p, char *path, mode_t mode) {
 }
 
 int filesys_open(struct proc *p, char *path, int flags) {
-  struct dirent *base = p->cwd;
+  struct dirent *base = p->cwd != NULL ? p->cwd->dirent : NULL;
   struct dirent *dirent = file_open(base, path, flags);
   if (dirent == NULL) {
     return -1;
@@ -118,7 +118,34 @@ void filesys_seek(struct proc *p, int fd, off_t offset, int mode) {
       ASSERT(0);
   }
 }
-bool filesys_link(char *oldpath, char *newpath, int flags) {
-  ASSERT(0);
-  return true;
-}
+
+// bool filesys_link(struct proc *p, char *oldpath, char *newpath) {
+//   struct dirent *old = file_open(p->cwd->dirent, oldpath, 0);
+//   if (old == NULL)
+//     return false;
+//
+//   struct dirent *file = dirent_alloc();
+//
+//   strncpy(file->name, newpath, strlen(newpath));
+//   file->size = old->size;
+//   file->first_cluster = old->first_cluster;
+//   file->offset = old->offset;
+//   file->type = DIR_LINK;
+//   file->filesystem = old->filesystem;
+//   file->linkcnt = 1;
+//   file->mode = old->mode;
+//   file->flag = flags;
+//   old->linkcnt += 1;
+//   return true;
+// }
+//
+// struct file *filesys_deny_write(struct proc *p, int fd) {
+//   struct file *file = find_file(&p->file_list, fd);
+//   file->deny_write = true;
+//   return file;
+// }
+//
+// void  filesys_allow_write(struct file *entry) {
+//   entry->deny_write = false;
+// }
+//

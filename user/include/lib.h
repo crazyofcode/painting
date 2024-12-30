@@ -4,13 +4,16 @@
 #include <syscall.h>
 #include <syscall-nr.h>
 
-typedef unsigned long uint64_t;
-typedef unsigned long size_t;
-
+#define STDIN     0
 #define STDOUT    1
+#define STDERR    2
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 int      main(int, char **);
 
+uint64_t read(int, char *, size_t);
 uint64_t write(int, char *, size_t);
 uint64_t exec(const char *, char **);
 void     exit(int);

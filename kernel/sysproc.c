@@ -1,11 +1,13 @@
 #include <types.h>
 #include <param.h>
+#include <riscv.h>
 #include <spinlock.h>
 #include <list.h>
 #include <proc.h>
 #include <macro.h>
 #include <defs.h>
 #include <vm.h>
+#include <uvm.h>
 #include <syscall.h>
 #include <string.h>
 
@@ -58,4 +60,49 @@ uint64_t sys_exit(void) {
   argint(&state, 0);
 
   process_exit(state);
+}
+
+static uint64_t incr_heap_space(uint64_t incr) {
+  struct proc *p = cur_proc();
+  uint64_t ret = p->heap_end;
+
+  if (uvmalloc(p->pagetable, p->heap_end, p->heap_end + incr, PTE_W | PTE_V) == 0)
+    return -1;
+  else {
+    p->heap_end += incr;
+    return ret;
+  }
+}
+
+static uint64_t desc_heap_space(uint64_t incr) {
+  struct proc *p = cur_proc();
+  uint64_t ret = p->heap_end;
+
+  if (uvmdealloc(p->pagetable, p->heap_end, p->heap_end + incr) == 0)
+    return -1;
+  else {
+    p->heap_end -= incr;
+    return ret;
+  }
+}
+
+uint64_t sys_sbrk(void) {
+  uint64_t incr;
+  struct proc *p = cur_proc();
+  argint(&incr, 0);
+
+  if (incr == 0)
+    return p->heap_end;
+  else if (incr > 0)
+    return incr_heap_space(incr);
+  else
+    return desc_heap_space(-incr);
+}
+
+uint64_t sys_fork(void) {
+  return fork();
+}
+
+uint64_t sys_wait(void) {
+  return -1;
 }

@@ -39,9 +39,9 @@ void argaddr(uint64_t *ptr, int n) {
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
 static uint64_t (*syscalls[])(void) = {
-// [SYS_fork]    sys_fork,
+[SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
-// [SYS_wait]    sys_wait,
+[SYS_wait]    sys_wait,
 // [SYS_pipe]    sys_pipe,
 [SYS_read]    sys_read,
 // [SYS_kill]    sys_kill,
@@ -50,7 +50,7 @@ static uint64_t (*syscalls[])(void) = {
 // [SYS_chdir]   sys_chdir,
 // [SYS_dup]     sys_dup,
 [SYS_getpid]  sys_getpid,
-// [SYS_sbrk]    sys_sbrk,
+[SYS_sbrk]    sys_sbrk,
 // [SYS_sleep]   sys_sleep,
 // [SYS_uptime]  sys_uptime,
 [SYS_open]    sys_open,
@@ -59,7 +59,7 @@ static uint64_t (*syscalls[])(void) = {
 // [SYS_unlink]  sys_unlink,
 // [SYS_link]    sys_link,
 // [SYS_mkdir]   sys_mkdir,
-// [SYS_close]   sys_close,
+[SYS_close]   sys_close,
 [SYS_create]  sys_create,
 };
 

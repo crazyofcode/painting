@@ -65,13 +65,16 @@ struct dirent *file_open(struct dirent *base, char *path, int flags) {
     log("permission deny\n");
     return NULL;
   }
+  dirent->flag = flags;
   return dirent;
 }
 
 bool file_close(struct dirent *dirent) {
   if (dirent == NULL)
     return false;
-  dirent_free(dirent);
+  dirent->linkcnt--;
+  if (dirent->linkcnt == 0)
+    dirent_free(dirent);
   return true;
 }
 bool file_create(struct dirent *dir, char *path, mode_t mode, struct dirent *file) {
@@ -82,14 +85,20 @@ size_t file_read(struct dirent *dirent, char *dst, off_t offset, size_t sz) {
     return -1;
   if (sz == 0)
     return 0;
-  return fileread(dirent, (uint64_t)dst, offset, sz);
+  if (dirent->flag == O_RDONLY || dirent->flag == O_RDWR)
+    return fileread(dirent, (uint64_t)dst, offset, sz);
+  else
+    return -1;
 }
 size_t file_write(struct dirent *dirent, char *src, off_t offset, size_t sz) {
   if (dirent == NULL || src == NULL)
     return -1;
   if (sz == 0)
     return 0;
-  return filewrite(dirent, (uint64_t)src, offset, sz);
+  if (dirent->flag == O_WRONLY || dirent->flag == O_RDWR)
+    return filewrite(dirent, (uint64_t)src, offset, sz);
+  else
+    return -1;
 }
 
 bool file_remove(struct dirent *base, char *filename) {

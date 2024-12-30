@@ -68,3 +68,27 @@ size_t strncpy(char *dst, const char *src, size_t n) {
   *(dst + idx) = 0;
   return sn - n;
 }
+
+char* strchr(const char* s, char c) {
+  for (; *s; s++) {
+    if (*s == c)
+      return (char *)s;
+  }
+
+  return NULL;
+}
+
+size_t gets(char *buf, int size) {
+  int i;
+  size = read(STDIN, buf, size-1);
+
+  for (i = 0; i < size; i++) {
+    if (*(buf+i) == '\n' || *(buf+i) == '\r') {
+      *(buf+i) = '\0';
+      break;
+    }
+  }
+
+  *(buf+size) = '\0';
+  return MIN(size, i);
+}

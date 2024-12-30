@@ -96,7 +96,7 @@ struct proc {
   pagetable_t         pagetable;
   struct context      context;
   struct sleeplock *  chan;
-  struct dirent *     cwd;
+  struct file *       cwd;
   uint64_t            heap_start;
   uint64_t            heap_end;
 

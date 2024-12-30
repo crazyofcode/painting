@@ -14,6 +14,7 @@ struct dirent {
   struct list child;
   struct list_elem elem;
   mode_t      mode;
+  mode_t      flag;
 };
 
 struct filesystem {
@@ -26,7 +27,6 @@ struct filesystem {
   struct dirent *           mountPoint;
   /*struct FSInfo             fsinfo;*/
   int                       deviceNum;
-	struct buf *(*get)(struct filesystem *fs, u64 blockNum); // 读取FS的一个Buffer
 };
 
 // fat32.c

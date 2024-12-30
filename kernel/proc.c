@@ -28,6 +28,13 @@ static struct spinlock process_lock;
 static struct list process_list;
 static struct spinlock  pid_lock;
 
+static bool is_load_file(struct file *file, int arg) {
+  if (!file)
+    return false;
+  else
+    return file->fd == arg;
+}
+
 static int _flag2perm(int flag) {
   int perm = 0;
   if (flag & 0x1) perm |= PTE_X;
@@ -90,15 +97,6 @@ struct proc* cur_proc(void) {
 int getpid() {
   return cur_proc()->pid;
 }
-// A fork child's very first scheduling by scheduler()
-// will swtch to forkret.
-// void forkret(void) {
-//   // 在scheduler里会获取该进程的锁
-//   struct proc *p = cur_proc();
-//   release(&p->lock);
-//
-//   usertrapret();
-// }
 
 pagetable_t process_pagetable(struct proc *p) {
   pagetable_t pagetable;
@@ -224,11 +222,6 @@ void run_first_task(void) {
   fat32Test();
   const char *argv[] = {"init", NULL};
   if (process_execute("init", argv)) {
-    // struct proc *p = cur_proc();
-    // pte_t *pte = walk(p->pagetable, p->trapframe->epc, 0);
-    // uint64_t pa = (uint64_t)PTE2PA(*pte);
-    // uint32_t inst = *(uint32_t *)(pa + p->trapframe->epc);
-    // printf("va: %p, inst: %x\n", p->trapframe->epc, inst);
     usertrapret();
   }
   sbi_shutdown();
@@ -288,7 +281,15 @@ pid_t fork(void) {
   }
 
   // copy on write
-  // set flag
+  if (uvmcopy(p->pagetable, np->pagetable, p->heap_start) < 0) {
+    uvmunmap(kernel_pagetable, KSTACK(np->pid), 1, 1);
+    uvmunmap(np->pagetable, TRAMPOLINE, 1, 0);
+    uvmunmap(np->pagetable, TRAPFRAME, 1, 1);
+    uvmfree(np->pagetable, 0);
+    rb_pop_front(np);
+    kfree(np, PROC_MODE);
+    return -1;
+  }
 
   //copy user register
   memcpy((void *)&np->trapframe, (void *)&p->trapframe, sizeof(p->trapframe));
@@ -296,7 +297,7 @@ pid_t fork(void) {
   np->trapframe->a0 = 0;
 
   // copy open file descriptor
-  // TODO
+  np->file_list = p->file_list;
 
   strncpy(np->name, p->name, sizeof(p->name));
   pid = np->pid;
@@ -470,7 +471,7 @@ bool loader(const char *file) {
       goto done;
     sz = phdr[i].vaddr + phdr[i].memsz;
   }
-  filesys_close(p, fd);
+
   p->heap_start = PGROUNDUP(sz);
   p->heap_end   = PGROUNDUP(sz);
   if (!setup_stack(p->pagetable, &p->trapframe->sp))
@@ -479,5 +480,7 @@ bool loader(const char *file) {
   success = true;
 
 done:
+  p->cwd = list_find(&p->file_list, struct file, is_load_file, fd);
+  filesys_close(p, fd);
   return success;
 }

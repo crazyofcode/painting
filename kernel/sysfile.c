@@ -108,3 +108,31 @@ uint64_t sys_read(void) {
   }
   return size;
 }
+
+uint64_t sys_close(void) {
+  uint64_t fd;
+  argint(&fd, 0);
+
+  if (fd < 2)
+    return -1;
+  else
+    return filesys_close(cur_proc(), fd);
+}
+
+// uint64_t sys_chdir(void) {
+//   uint64_t path;
+//   argaddr(&path, 0);
+//
+//   if (!valid_user_arg(path)) {
+//     log("invalid user arg addr: 0x%08x\n", addr);
+//     return -1;
+//   } else {
+//     struct proc *p = cur_proc();
+//     char buf[size+1];
+//     transtr(addr, buf, size, true);
+//     struct dirent *old_cwd = p->cwd;
+//     p->cwd = filesys_link(p, buf, buf, old_cwd->flag);
+//     filesys_unlink(p, old_cwd);
+//     return 0;
+//   }
+// }
